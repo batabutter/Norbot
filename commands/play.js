@@ -12,6 +12,8 @@ const {
 
 const filePath = path.resolve(__dirname, 'audio.mp3');
 
+const baseUrl = "http://localhost:3000/search/"
+
 /*
 
     Check difference between url and regular input
@@ -43,8 +45,14 @@ module.exports = {
         try {
 
             console.log("Here")
-            if (!ytdl.validateURL(url))
-                return interaction.editReply("**❌ Could not find a video with that url.**")
+            if (!ytdl.validateURL(url)) {
+                const res = await fetch(`http://localhost:3000/search/${url}`)
+                const json = await res.json()
+                if (!res.ok)
+                    return interaction.editReply("**❌ Could not find a video with that url or title.**")
+                url = json[0]
+                console.log("Trying with > "+url)
+            }
 
             let info = await ytdl.getBasicInfo(url)
 
