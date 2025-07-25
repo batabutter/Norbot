@@ -21,13 +21,16 @@ const filePath = path.resolve(__dirname, 'audio.mp3');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('play')
-        .setDescription('Replies with Pong and latency information')
+        .setDescription('Plays audio from a YouTube URL')
         .addStringOption(option =>
             option.setName('input')
                 .setDescription(`Video title`)
                 .setRequired(true)
         ),
     async execute(interaction) {
+        if (!interaction.member.voice.channel) {
+            return interaction.reply("**❓ You're not connected to any voice channel.**")
+        }
         await interaction.deferReply();
         let url = interaction.options.getString('input')
 
@@ -39,6 +42,7 @@ module.exports = {
 
         try {
 
+            console.log("Here")
             if (!ytdl.validateURL(url))
                 return interaction.editReply("**❌ Could not find a video with that url.**")
 
@@ -57,6 +61,7 @@ module.exports = {
                 }
             })
 
+
             const player = createAudioPlayer({
                 behaviors: {
                     noSubscriber: NoSubscriberBehavior.Pause,
@@ -66,7 +71,7 @@ module.exports = {
             if (isPlaying()) {
                 addSong(url, interaction.user.tag, info.videoDetails.title)
                 return interaction.editReply(
-                    ` Enqueued **\"${info.videoDetails.title}\"** at queue position ${getSize() - 1}`)
+                    ` Enqueued **\"${info.videoDetails.title}\"** at queue position ${getSize() - 1}.`)
             }
 
             player.on(AudioPlayerStatus.Idle, async () => {
@@ -76,7 +81,7 @@ module.exports = {
                     const content = removeSong();
                     info = await ytdl.getBasicInfo(content.url)
                     playNextResource(url, player, connection)
-                    return interaction.channel.send(`Now playing: **\"${content.name}\"** in **${interaction.member.voice.channel.name}** 🔊`);
+                    return interaction.channel.send(`Now playing: **\"${content.name}\"** in **${interaction.member.voice.channel.name}** 🔊.`);
                 }
                 else {
                     isPlayingFlagToggle(false)
@@ -96,7 +101,7 @@ module.exports = {
                 }
             })
 
-            await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}** 🔊`);
+            await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}** 🔊.`);
 
 
 

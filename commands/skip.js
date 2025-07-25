@@ -16,7 +16,7 @@ module.exports = {
         console.log(connection)
 
         if (!connection)
-            return interaction.reply("**I am not connected to a voice channel**")
+            return interaction.reply("**I am not connected to a voice channel.**")
 
         const player = connection.state.subscription?.player;
 
