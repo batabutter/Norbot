@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js')
-const { songQueue, isEmpty } = require('../songqueue');
+const { songQueue, isEmpty, removeSongAtPositon } = require('../songqueue');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,7 +12,7 @@ module.exports = {
         ),
     async execute(interaction) {
 
-        const position = interaction.options.getInteger('input')
+        const position = interaction.options.getInteger('position')
 
         if (isEmpty())
             return interaction.reply("**Queue is already empty. 🍃**")

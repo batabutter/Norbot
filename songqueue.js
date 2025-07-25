@@ -10,7 +10,7 @@ const clearQueue = () => {
 
 const removeSongAtPositon = (position) => {
     let result = false
-    if (position > 0 && position < songQueue.length) {
+    if (position >=  0 && position < songQueue.length) {
         songQueue.splice(position, 1)
         result = true
     } else {
