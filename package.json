@@ -1,0 +1,32 @@
+{
+  "name": "youtube-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/opus": "github:discordjs/opus",
+    "@discordjs/voice": "^0.18.0",
+    "@distube/ytdl-core": "^4.16.12",
+    "discord.js": "^14.21.0",
+    "dotenv": "^17.2.0",
+    "ffmpeg-static": "^5.2.0",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3",
+    "play-dl": "^1.9.7",
+    "sodium-native": "^5.0.6",
+    "youtube-mp3-downloader": "^0.7.11",
+    "ytdl-core": "^4.11.5",
+    "ytdl-mp3": "^5.2.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "eslint": "^9.31.0"
+  },
+  "keywords": [],
+  "description": ""
+}
