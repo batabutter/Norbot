@@ -13,6 +13,8 @@ const {
 const filePath = path.resolve(__dirname, 'audio.mp3');
 
 const baseUrl = "http://localhost:3000/search/"
+const maxVideoLength = 7200
+
 
 /*
 
@@ -23,10 +25,10 @@ const baseUrl = "http://localhost:3000/search/"
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('play')
-        .setDescription('Plays audio from a YouTube URL')
+        .setDescription('Plays audio from a YouTube URL.')
         .addStringOption(option =>
             option.setName('input')
-                .setDescription(`Video title`)
+                .setDescription(`Please enter a url or a video title.`)
                 .setRequired(true)
         ),
     async execute(interaction) {
@@ -43,10 +45,8 @@ module.exports = {
         });
 
         try {
-
-            console.log("Here")
             if (!ytdl.validateURL(url)) {
-                const res = await fetch(`http://localhost:3000/search/${url}`)
+                const res = await fetch(`${baseUrl}${url}`)
                 const json = await res.json()
                 if (!res.ok)
                     return interaction.editReply("**❌ Could not find a video with that url or title.**")
@@ -55,6 +55,8 @@ module.exports = {
             }
 
             let info = await ytdl.getBasicInfo(url)
+            if (info.videoDetails.lengthSeconds > maxVideoLength)
+                return interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
 
             connection.on('stateChange', (oldState, newState) => {
                 console.log(`Connection state changed from ${oldState.status} to ${newState.status}`);
@@ -87,11 +89,9 @@ module.exports = {
 
                 if (!isEmpty()) {
                     const content = removeSong();
-                    info = await ytdl.getBasicInfo(content.url)
-                    playNextResource(url, player, connection)
+                    playNextResource(content.url, player, connection)
                     return interaction.channel.send(`Now playing: **\"${content.name}\"** in **${interaction.member.voice.channel.name}** 🔊.`);
-                }
-                else {
+                } else {
                     isPlayingFlagToggle(false)
                     return interaction.channel.send(`** Player stopped. ** ⏹️`);
                 }

@@ -7,10 +7,6 @@ const port = 3000
 const baseUrl = "https://www.googleapis.com/youtube/v3"
 const watchUrl = "https://www.youtube.com/watch?v="
 
-app.get('/', (req, res) => {
-    res.json("Hello world")
-})
-
 app.get("/search/:searchQuery", async (req, res) => {
 
     try {
@@ -21,7 +17,6 @@ app.get("/search/:searchQuery", async (req, res) => {
 
         if (!response.data || !response.data.items || response.data.items.length === 0)
             return res.status(404).json({ error: "No results found" });
-
 
         const videoUrls = response.data.items.map(item => {
             const videoId = item.id.videoId

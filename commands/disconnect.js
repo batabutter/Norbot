@@ -11,7 +11,7 @@ module.exports = {
         connection.destroy();
 
         await interaction.reply({
-            content: "Disconnecting...",
+            content: "**Disconnecting...**",
             fetchReply: true
         })
     }
