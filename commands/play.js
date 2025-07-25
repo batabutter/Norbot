@@ -10,7 +10,7 @@ const {
     getSize,
     addSong } = require('../songqueue');
 
-const filePath = path.resolve(__dirname, 'audio.mp4');
+const filePath = path.resolve(__dirname, 'audio.mp3');
 
 /*
 
@@ -109,7 +109,7 @@ module.exports = {
 const playNextResource = async (url, player, connection) => {
     const stream = await ytdl(url, { filter: 'audioonly' })
         .pipe(require("fs")
-            .createWriteStream("audio.mp3"));
+            .createWriteStream(filePath));
 
     stream.on("finish", () => {
         console.log("finished downloading")
