@@ -8,7 +8,10 @@ const {
     isPlaying,
     removeSong,
     getSize,
-    addSong } = require('../songqueue');
+    addSong,
+    isLoop, 
+    isLoopQueue,
+    setPlayingSong} = require('../songqueue');
 
 const filePath = path.resolve(__dirname, 'audio.mp3');
 
@@ -81,16 +84,19 @@ module.exports = {
             if (isPlaying()) {
                 addSong(url, interaction.user.tag, info.videoDetails.title)
                 return interaction.editReply(
-                    ` Enqueued **\"${info.videoDetails.title}\"** at queue position ${getSize() - 1}.`)
+                    `Queued **\"${info.videoDetails.title}\"** at position **${getSize()}**. 🎵`)
             }
 
             player.on(AudioPlayerStatus.Idle, async () => {
                 console.log("Free to play a song")
+                
+                if (!isEmpty() || isLoop() || isLoopQueue()) {
+                    const content = isLoop() ? {url:url, name:info.videoDetails.title, player:interaction.user.tag} : removeSong();
 
-                if (!isEmpty()) {
-                    const content = removeSong();
-                    playNextResource(content.url, player, connection)
-                    return interaction.channel.send(`Now playing: **\"${content.name}\"** in **${interaction.member.voice.channel.name}** 🔊.`);
+                    playNextResource(content.url, player, connection, content.player, content.name)
+                    if (isLoop() || isLoopQueue())
+                        return
+                    return interaction.channel.send(`Now playing: **\"${content.name}\"** in **${interaction.member.voice.channel.name}**. 🔊`);
                 } else {
                     isPlayingFlagToggle(false)
                     return interaction.channel.send(`** Player stopped. ** ⏹️`);
@@ -99,7 +105,7 @@ module.exports = {
 
             console.log("Url is now " + url)
 
-            playNextResource(url, player, connection)
+            playNextResource(url, player, connection, interaction.user.tag, info.videoDetails.title)
 
             connection.on(VoiceConnectionStatus.Destroyed, async (oldState, newState) => {
                 try {
@@ -109,7 +115,7 @@ module.exports = {
                 }
             })
 
-            await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}** 🔊.`);
+            await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}**. 🔊`);
 
 
 
@@ -119,7 +125,7 @@ module.exports = {
     }
 }
 
-const playNextResource = async (url, player, connection) => {
+const playNextResource = async (url, player, connection, username, title) => {
     const stream = await ytdl(url, { filter: 'audioonly' })
         .pipe(require("fs")
             .createWriteStream(filePath));
@@ -133,4 +139,5 @@ const playNextResource = async (url, player, connection) => {
         return resource
     })
 
+    setPlayingSong(url, username, title)
 }

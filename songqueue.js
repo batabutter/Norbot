@@ -1,7 +1,8 @@
-const songQueue = []
+let songQueue = []
 let isPlayingFlag = false
 let loopSong = false
 let loopQueue = false
+let lastPlayedSong = {}
 
 const clearQueue = () => {
     songQueue = []
@@ -31,6 +32,18 @@ const isPlayingFlagToggle = (val) => {
     isPlayingFlag = val
 }
 
+const setPlayingSong = (url, player, name) => {
+    console.log("Set playing song > ")
+    lastPlayedSong = {
+        url: url,
+        player: player,
+        name: name
+    }
+    console.log("Playing > ")
+    console.log(lastPlayedSong)
+    console.log("end  ")
+}
+
 const addSong = (url, playerName, songName) => {
     const newSong = {
         url: url,
@@ -38,30 +51,57 @@ const addSong = (url, playerName, songName) => {
         name: songName,
         position: getSize()
     }
+    console.log("Adding...")
+    console.log(newSong)
     songQueue.push(newSong)
 }
 
 const removeSong = () => {
+
+    console.log("Removing song... "+loopQueue)
+
+    let result = {}
+
     if (!isEmpty()) {
+
         let returl = songQueue[0].url
         let songName = songQueue[0].name
         let playerName = songQueue[0].playerName
-
-        songQueue.pop()
-        if (!loopQueue) {
-            console.log("Popping > " + returl)
-        } else {
-            console.log("Loop queue is on!")
-            console.log("Adding song back to bottom of the queue...")
-            addSong(returl, songName, playerName)
-        }
-        return {
+        result= {
             url: returl,
             name: songName,
             player: playerName
         }
     }
-    console.log("Queue empty")
+
+    if (result) {
+        songQueue.shift()
+        console.log("Popping > ")
+        if (loopQueue)
+            addSong(lastPlayedSong.url, lastPlayedSong.player, lastPlayedSong.name)
+    } else {
+       console.log("Queue empty") 
+    }
+
+    return result
+}
+
+const isLoop = () => {
+    return loopSong
+}
+
+const isLoopQueue = () => {
+    return loopQueue
+}
+
+const toggleLoop = () => {
+    loopSong = !loopSong
+    return loopSong
+}
+
+const toggleLoopQueue = () => {
+    loopQueue = !loopQueue
+    return loopQueue
 }
 
 const isPlaying = () => isPlayingFlag
@@ -75,5 +115,10 @@ module.exports = {
     removeSong,
     addSong,
     clearQueue,
-    removeSongAtPositon
+    removeSongAtPositon,
+    isLoop,
+    isLoopQueue,
+    toggleLoop,
+    toggleLoopQueue,
+    setPlayingSong
 };

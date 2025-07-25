@@ -9,7 +9,7 @@ module.exports = {
 
         if (isEmpty())
             return interaction.reply("**Queue is already empty. 🍃**")
-        
+
         clearQueue()
 
         return interaction.reply("**Queue cleared. **✅");
