@@ -97,7 +97,7 @@ client.once(Events.ClientReady, async () => {
 
     const status = 'online'
     const activityType = `PLAYING`
-    const activityName = `With my penis`
+    const activityName = `gleefully`
 
     client.user.setPresence({
         status: PresenceUpdateStatus.Online,

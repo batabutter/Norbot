@@ -113,7 +113,7 @@ const playNextResource = async (url, player, connection) => {
 
     stream.on("finish", () => {
         console.log("finished downloading")
-        const resource = createAudioResource("audio.mp3");
+        const resource = createAudioResource(filePath);
         player.play(resource);
         connection.subscribe(player);
         isPlayingFlagToggle(true)
