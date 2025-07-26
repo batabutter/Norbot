@@ -5,6 +5,7 @@ const axios = require('axios');
 const app = express()
 const port = 3000
 const baseUrl = "https://www.googleapis.com/youtube/v3"
+const playlistUrl = "https://www.googleapis.com/youtube/v3/playlistItems"
 const watchUrl = "https://www.youtube.com/watch?v="
 
 app.get("/search/:searchQuery", async (req, res) => {
@@ -29,6 +30,25 @@ app.get("/search/:searchQuery", async (req, res) => {
     } catch (error) {
         console.log(error.message)
     }
+})
+
+app.get("/playlist/items/:id", async (req, res) => {
+
+    try {
+        const { id } = req.params
+        const url = `${playlistUrl}/?key=${process.env.API_KEY}&part=contentDetails&playlistId=${id}&maxResults=30`
+        const response = await axios.get(url)
+
+        const videoUrls = response.data.items.map(item => {
+            const videoId = item.contentDetails.videoId
+            return `${watchUrl}${videoId}`
+        })
+
+        res.json(videoUrls)
+    } catch (error) {
+        console.log(error.message)
+    }
+
 })
 
 app.listen(port, () => {

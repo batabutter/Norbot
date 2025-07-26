@@ -9,13 +9,15 @@ const {
     removeSong,
     getSize,
     addSong,
-    isLoop, 
+    isLoop,
     isLoopQueue,
-    setPlayingSong} = require('../songqueue');
+    setPlayingSong
+} = require('../songqueue');
 
 const filePath = path.resolve(__dirname, 'audio.mp3');
 
 const baseUrl = "http://localhost:3000/search/"
+const playlistURL = "http://localhost:3000/playlist/items/"
 const maxVideoLength = 7200
 
 
@@ -39,7 +41,6 @@ module.exports = {
             return interaction.reply("**❓ You're not connected to any voice channel.**")
         }
         await interaction.deferReply();
-        let url = interaction.options.getString('input')
 
         const connection = joinVoiceChannel({
             channelId: interaction.member.voice.channel.id,
@@ -48,14 +49,9 @@ module.exports = {
         });
 
         try {
-            if (!ytdl.validateURL(url)) {
-                const res = await fetch(`${baseUrl}${url}`)
-                const json = await res.json()
-                if (!res.ok)
-                    return interaction.editReply("**❌ Could not find a video with that url or title.**")
-                url = json[0]
-                console.log("Trying with > "+url)
-            }
+            let url = await validateUrl(interaction.options.getString('input'), interaction.user.tag)
+
+            console.log("Outside validation: " + url)
 
             let info = await ytdl.getBasicInfo(url)
             if (info.videoDetails.lengthSeconds > maxVideoLength)
@@ -89,9 +85,9 @@ module.exports = {
 
             player.on(AudioPlayerStatus.Idle, async () => {
                 console.log("Free to play a song")
-                
+
                 if (!isEmpty() || isLoop() || isLoopQueue()) {
-                    const content = isLoop() ? {url:url, name:info.videoDetails.title, player:interaction.user.tag} : removeSong();
+                    const content = isLoop() ? { url: url, name: info.videoDetails.title, player: interaction.user.tag } : removeSong();
 
                     playNextResource(content.url, player, connection, content.player, content.name)
                     if (isLoop() || isLoopQueue())
@@ -114,10 +110,11 @@ module.exports = {
                     console.log(error.message)
                 }
             })
-
-            await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}**. 🔊`);
-
-
+            if (isEmpty())
+                await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}**. 🔊`)
+            else {
+                await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}, Queued ${getSize()} songs**. 🔊`)
+            }
 
         } catch (error) {
             console.log(error.message)
@@ -140,4 +137,47 @@ const playNextResource = async (url, player, connection, username, title) => {
     })
 
     setPlayingSong(url, username, title)
+}
+
+const validateUrl = async (url, playerName) => {
+    let retUrl = ""
+    if (!ytdl.validateURL(url)) {
+        try {
+            const res = await fetch(`${baseUrl}${url}`)
+            const json = await res.json()
+            if (!res.ok)
+                return interaction.editReply("**❌ Could not find a video with that url or title.**")
+            retUrl = json[0]
+            console.log("Trying with > " + retUrl)
+        } catch (error) {
+            console.log(error.message)
+        }
+    } else {
+        const parsedURL = new URL(url)
+        const listId = parsedURL.searchParams.get("list")
+        let listItems = []
+        retUrl = url
+        if (listId) {
+            console.log("Playlisy??")
+            const index = parsedURL.searchParams.get("index")
+            try {
+                const res = await fetch(`${playlistURL}${listId}`)
+                const json = await res.json()
+                if (!res.ok)
+                    return interaction.editReply("**❌ Error obtaining videos in the playlist**")
+                listItems = json
+                if (!isPlaying())
+                    listItems.splice(index, 1);
+
+                for (const itemURL of listItems) {
+                    let info = await ytdl.getBasicInfo(itemURL)
+                    await addSong(itemURL, playerName, info.videoDetails.title)
+                }
+            } catch (error) {
+                console.log(error.message)
+            }
+        }
+    }
+
+    return retUrl
 }

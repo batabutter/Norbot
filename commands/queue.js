@@ -16,8 +16,8 @@ module.exports = {
         })
 
         const queueList = new EmbedBuilder()
-            .setTitle(`Showing first 5 songs out of ${getSize()} total... 🎶`)
-            .setDescription(`${shortenedQueue.join('\n')}`)  // Join the songs with a line break
+            .setTitle(`Showing 5 songs out of ${getSize()} total... 🎶`)
+            .setDescription(`\`${shortenedQueue.join('\n')}\``)  // Join the songs with a line break
             .setColor(0x06402B);
 
        

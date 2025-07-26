@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "concurrently \"nodemon index.js\" \"nodemon ./youtube-api/index.js\"",
+    "bot": "nodemon index.js",
+    "api": "nodemon ./youtube-api/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -12,6 +14,7 @@
     "@discordjs/opus": "github:discordjs/opus",
     "@discordjs/voice": "^0.18.0",
     "@distube/ytdl-core": "^4.16.12",
+    "concurrently": "^9.2.0",
     "discord.js": "^14.21.0",
     "dotenv": "^17.2.0",
     "ffmpeg-static": "^5.2.0",
