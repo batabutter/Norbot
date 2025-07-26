@@ -50,12 +50,14 @@ module.exports = {
         });
 
         try {
-            let url = await validateUrl(interaction.options.getString('input'), interaction.user.tag)
+            const { retUrl, numUnavailableSongs, numSongs } = await validateUrl(interaction.options.getString('input'), interaction.user.tag)
+            let url = retUrl
 
             console.log("Outside validation: " + url)
 
             let info = await ytdl.getBasicInfo(url)
-            if (info.videoDetails.lengthSeconds > maxVideoLength)
+            const lengthSeconds = info.videoDetails.lengthSeconds
+            if (lengthSeconds > maxVideoLength)
                 return interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
 
             connection.on('stateChange', (oldState, newState) => {
@@ -71,6 +73,10 @@ module.exports = {
                 }
             })
 
+            const formattedHours = String(Math.round(lengthSeconds / 3600)).padStart(2, 0)
+            const formattedSeconds = String(Math.round((lengthSeconds % 3600) / 60)).padStart(2, 0)
+
+            const audioLength = `[${formattedHours}:${formattedSeconds}]`
 
             const player = createAudioPlayer({
                 behaviors: {
@@ -81,7 +87,8 @@ module.exports = {
             if (isPlaying()) {
                 addSong(url, interaction.user.tag, info.videoDetails.title)
                 return interaction.editReply(
-                    `Queued **\"${info.videoDetails.title}\"** at position **${getSize()}**. 🎵`)
+                    `** Queued ${numSongs} song${(numSongs > 1) ? "s" : ""}. ✅**` +
+                    `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
             }
 
             player.on(AudioPlayerStatus.Idle, async () => {
@@ -93,7 +100,7 @@ module.exports = {
                     playNextResource(content.url, player, connection, content.player, content.name)
                     if (isLoop() || isLoopQueue())
                         return
-                    return interaction.channel.send(`Now playing: **\"${content.name}\"** in **${interaction.member.voice.channel.name}**. 🔊`);
+                    return interaction.editReply(`Now playing: **\"${content.name}\"** ${audioLength}\nin \`${interaction.member.voice.channel.name}\`. 🔊`);
                 } else {
                     isPlayingFlagToggle(false)
                     return interaction.channel.send(`** Player stopped. ** ⏹️`);
@@ -112,13 +119,14 @@ module.exports = {
                 }
             })
             if (isEmpty())
-                await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}**. 🔊`)
+                await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${interaction.member.voice.channel.name}\`. 🔊`)
             else {
-                await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** in **${interaction.member.voice.channel.name}, Queued ${getSize()} songs**. 🔊`)
+                await interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${interaction.member.voice.channel.name}\` 🔊 \n-# Queued ${numSongs} songs. ✅` +
+                    `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
             }
 
         } catch (error) {
-            console.log(error.message)
+            await interaction.editReply(`❗ **Something went wrong with your query!** \`${error.message}\``)
         }
     }
 }
@@ -142,6 +150,8 @@ const playNextResource = async (url, player, connection, username, title) => {
 
 const validateUrl = async (url, playerName) => {
     let retUrl = ""
+    let numUnavailableSongs = 0
+    let numSongs = 0
     if (!ytdl.validateURL(url)) {
         try {
             const res = await fetch(`${baseUrl}${url}`)
@@ -150,6 +160,7 @@ const validateUrl = async (url, playerName) => {
                 return interaction.editReply("**❌ Could not find a video with that url or title.**")
             retUrl = json[0]
             console.log("Trying with > " + retUrl)
+            numSongs++;
         } catch (error) {
             console.log(error.message)
         }
@@ -159,7 +170,7 @@ const validateUrl = async (url, playerName) => {
         let listItems = []
         retUrl = url
         if (listId) {
-            console.log("Playlisy??")
+            console.log("Adding playlist > ")
             const index = parsedURL.searchParams.get("index")
             try {
                 const res = await fetch(`${playlistURL}${listId}`)
@@ -171,14 +182,24 @@ const validateUrl = async (url, playerName) => {
                     listItems.splice(index, 1);
 
                 for (const itemURL of listItems) {
-                    let info = await ytdl.getBasicInfo(itemURL)
-                    await addSong(itemURL, playerName, info.videoDetails.title)
+                    console.log("Validation complete")
+                    try {
+                        let info = await ytdl.getBasicInfo(itemURL)
+                        if (info.videoDetails.lengthSeconds < maxVideoLength)
+                            await addSong(itemURL, playerName, info.videoDetails.title)
+                        numSongs++
+                    } catch (error) {
+                        console.log("Video unavailable")
+                        numUnavailableSongs++
+                    }
                 }
             } catch (error) {
                 console.log(error.message)
             }
+        } else {
+            numSongs++
         }
     }
 
-    return retUrl
+    return { retUrl, numUnavailableSongs, numSongs }
 }

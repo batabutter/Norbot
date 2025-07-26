@@ -7,7 +7,7 @@ let loopQueue = false
 let lastPlayedSong = {}
 let displayQueue = []
 let topOfQueue = 0
-let numQueueItemsShow = 2
+let numQueueItemsShow = 10
 let queueOutdated = false
 
 const clearQueue = () => { 
@@ -152,8 +152,6 @@ const queueViewComponents = () => {
         .setStyle(ButtonStyle.Secondary)
         .setEmoji("⬅️")
 
-    console.log("What>>> top of queue"+topOfQueue)
-
     let shortenedQueue = displayQueue.slice(topOfQueue, queueSize > endIndex ? endIndex : queueSize).map((song, index) => {
         return `${index + 1 + (topOfQueue)}. ${song.name}\n`;
     })
@@ -164,7 +162,7 @@ const queueViewComponents = () => {
     console.log(shortenedQueue)
 
     const queueList = new EmbedBuilder()
-        .setTitle(`Showing 10 songs out of ${queueSize} total... 🎶`)
+        .setTitle(`Showing first ${numQueueItemsShow} songs out of ${queueSize} total... 🎶`)
         .setDescription(`\`${shortenedQueue.join('\n')}\``)
         .setColor(0x06402B)
 
@@ -173,7 +171,9 @@ const queueViewComponents = () => {
     if (endIndex < queueSize)
         components.push(next)
 
-    const rowComponents = new ActionRowBuilder().addComponents(...components)
+    let rowComponents = {}
+    if (components.length > 0)
+        rowComponents = new ActionRowBuilder().addComponents(...components)
 
     return { queueList, rowComponents }
 

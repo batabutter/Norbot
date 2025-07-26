@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js')
 const { songQueue, isEmpty, setDisplayQueue, queueViewComponents, getTopOfQueue, getNumQueueItemsToDisplay, setQueueOutdated } = require('../songqueue');
 const { EmbedBuilder } = require('discord.js');
+const { checkConnection } = require('./utils/checkvoiceconnection');
 const activeQueue = new Map()
 
 module.exports = {
@@ -21,10 +22,17 @@ module.exports = {
 
             const { queueList, rowComponents } = queueViewComponents()
 
-            const res = await interaction.reply({
-                embeds: [queueList], components: [rowComponents],
-                fetchReply: true
-            });
+            let res
+
+            if (Object.keys(rowComponents).length > 0)
+                res = await interaction.reply({
+                    embeds: [queueList], components: [rowComponents],
+                    fetchReply: true
+                });
+            else
+                res = await interaction.reply({
+                    embeds: [queueList]
+                });
 
             activeQueue.set("id", res.id)
 
