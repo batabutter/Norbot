@@ -25,7 +25,8 @@
 ~~- Add further checks to make sure you're in the voice channel~~
 - Add optional input to skip mutliple songs? Maybe???
 ~~- Move the voice channel checks into a different module~~
-- Add message saying how many videos were unavailable in a playlist
+~~- Add message saying how many videos were unavailable in a playlist~~
 - Make all lines under 80 characters
-- Handle if it cannot join a voice channel
-- Make bot work while in different servers
+~~- Handle if it cannot join a voice channel~~
+~~- Make bot work while in different servers~~
+~~- Maybe make it reply to the message of what it is currenly playing~~

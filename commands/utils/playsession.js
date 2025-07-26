@@ -1,0 +1,233 @@
+const { AudioPlayerStatus, VoiceConnectionStatus, createAudioResource } = require("@discordjs/voice")
+const { SongQueue } = require("./songqueue")
+const path = require('path');
+const ytdl = require("@distube/ytdl-core");
+const filePath = path.resolve(__dirname, '../audio.mp3');
+
+const baseUrl = "http://localhost:3000/search/"
+const playlistURL = "http://localhost:3000/playlist/items/"
+const maxVideoLength = 7200
+
+const guildPlaySessions = new Map()
+
+class PlaySession {
+  constructor(
+    channelId,
+    connection,
+    player,
+    subscription,
+    interaction) {
+    this.channelId = channelId
+    this.connection = connection
+    this.songQueue = new SongQueue()
+    this.player = player
+    this.subscription = subscription
+    this.interaction = interaction
+    this.reponse=""
+
+    player.on(AudioPlayerStatus.Idle, async () => {
+      console.log("Free to play a song")
+      if (!this.songQueue.isEmpty() || this.songQueue.isLoop() || this.songQueue.isLoopQueue()) {
+        const content = this.songQueue.isLoop() ? this.songQueue.getPlayingInfo() : this.songQueue.removeSong();
+        this.songQueue.isPlayingFlagToggle(false)
+
+        console.log("What the fuck")
+        this.PlayNextResource(content.url, true)
+      } else {
+        return this.interaction.channel.send(`** Player stopped. ** ⏹️`);
+      }
+    })
+
+    connection.on('stateChange', (oldState, newState) => {
+      console.log(`Connection state changed from ${oldState.status} to ${newState.status}`);
+    })
+
+    connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
+      try {
+        this.endConnection()
+        return this.interaction.editReply("**❌ Disconnected from VC**")
+      } catch (error) {
+        console.log(error.message)
+      }
+    })
+
+    connection.on(VoiceConnectionStatus.Destroyed, async (oldState, newState) => {
+      try {
+        this.endConnection()
+
+        console.log("Connection destroyed.")
+        return interaction.editReply("**❓ Something went wrong... Connection was destroyed.**")
+      } catch (error) {
+        console.log(error.message)
+      }
+    })
+  }
+
+  GetQueue = () => this.songQueue
+
+  GetPlayer = () => this.player
+
+  GetSubscription = () => this.subscription
+
+  GetVideoInfo = async (url, playerName) => {
+    try {
+      console.log("Entering video info")
+      let info = await ytdl.getBasicInfo(url)
+
+      if (!info)
+        return interaction.editReply("**❌ No results found.**")
+
+      const lengthSeconds = info.videoDetails.lengthSeconds
+      if (lengthSeconds > maxVideoLength)
+        return interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
+
+      /*
+               Format declarations:
+            */
+      const formattedHours = String(Math.round(lengthSeconds / 3600)).padStart(2, 0)
+      const formattedSeconds = String(Math.round((lengthSeconds % 3600) / 60)).padStart(2, 0)
+      const audioLength = `[${formattedHours}:${formattedSeconds}]`
+      console.log("What > " + url)
+
+      const { retUrl, numUnavailableSongs, numSongs } = await this.validateUrl(url, playerName, this.songQueue)
+
+      return { retUrl, numUnavailableSongs, numSongs, info, audioLength }
+
+    } catch (error) {
+      console.log("Error in GetInfo")
+      await this.interaction.editReply(`❗ **Something went wrong... ** \`${error.message}\``)
+    }
+  }
+
+  PlayNextResource = async (url, reply) => {
+    try {
+      const { retUrl, numUnavailableSongs, numSongs, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
+      console.log("Url is now " + retUrl)
+      console.log("Info is now ")
+
+      if (this.songQueue.isPlaying()) {
+        console.log("A song is playing...")
+        this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title)
+
+      } else {
+        const stream = await ytdl(retUrl, { filter: 'audioonly' })
+          .pipe(require("fs")
+            .createWriteStream(filePath));
+
+        await stream.on("finish", () => {
+          console.log("finished downloading")
+          const resource = createAudioResource(filePath);
+          this.player.play(resource);
+          return resource
+        })
+        this.songQueue.setQueueOutdated(true)
+        this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
+      }
+
+      this.Reply(info, audioLength, numSongs, numUnavailableSongs, reply)
+      this.songQueue.isPlayingFlagToggle(true)
+    } catch (error) {
+      await this.interaction.editReply(`❗ **Something went wrong... ** \`${error.message}\``)
+    }
+  }
+
+  Reply = async (info, audioLength, numSongs, numUnavailableSongs, sendReplyMsg) => {
+    if (!this.songQueue.isPlaying())
+      await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
+    else {
+      if (sendReplyMsg)
+        return await this.interaction.followUp(`${!this.songQueue.isPlaying() ? "Now playing" : "Queued"}:` +
+          `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
+          \n-# Queued ${numSongs} songs. ✅` +
+          `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
+        else {
+          return await this.interaction.editReply(`${!this.songQueue.isPlaying() ? "Now playing" : "Queued"}:` +
+          `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
+          \n-# Queued ${numSongs} songs. ✅` +
+          `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
+        }
+    }
+  }
+
+  endConnection = () => {
+
+    console.log("Destroying connection by disconnecting")
+    this.songQueue.clearQueue()
+    this.songQueue.setQueueOutdated(true)
+    this.songQueue.isPlayingFlagToggle(false)
+
+    if (this.subscription)
+      this.subscription.unsubscribe(this.player)
+
+    this.connection.destroy()
+
+    guildPlaySessions.delete(this.interaction.guild.id)
+
+  }
+
+  validateUrl = async (url, playerName) => {
+    let retUrl = ""
+    let numUnavailableSongs = 0
+    let numSongs = 0
+    if (!ytdl.validateURL(url)) {
+      try {
+        const res = await fetch(`${baseUrl}${url}`)
+        const json = await res.json()
+        if (!res.ok)
+          return this.interaction.editReply("**❌ Could not find a video with that url or title.**")
+        retUrl = json[0]
+        console.log("Trying with > " + retUrl)
+        numSongs++;
+      } catch (error) {
+        console.log(error.message)
+      }
+    } else {
+      const parsedURL = new URL(url)
+      const listId = parsedURL.searchParams.get("list")
+      let listItems = []
+      retUrl = url
+      if (listId) {
+        console.log("Adding playlist > ")
+        const index = parsedURL.searchParams.get("index")
+        try {
+          const res = await fetch(`${playlistURL}${listId}`)
+          const json = await res.json()
+          if (!res.ok)
+            return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
+          listItems = json
+          if (!this.songQueue.isPlaying())
+            listItems.splice(index, 1);
+
+          for (const itemURL of listItems) {
+            try {
+              let info = await ytdl.getBasicInfo(itemURL)
+              if (info.videoDetails.lengthSeconds < maxVideoLength)
+                await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
+              numSongs++
+            } catch (error) {
+              console.log("Video unavailable")
+              numUnavailableSongs++
+            }
+          }
+        } catch (error) {
+          console.log(error.message)
+        }
+      } else {
+        numSongs++
+      }
+    }
+
+    return { retUrl, numUnavailableSongs, numSongs }
+  }
+
+  SetInteraction = (interaction) => {this.interaction = interaction}
+
+  GetConnection = () => this.connection
+
+  GetPlayer = () => this.player
+
+}
+module.exports = {
+  PlaySession,
+  guildPlaySessions
+}

@@ -11,8 +11,8 @@ const {
 const fs = require('fs')
 const path = require('path')
 const { token } = require('./config.json');
-const { getNumQueueItemsToDisplay, getDisplayQueueSize, getTopOfQueue, setTopOfQueue, queueViewComponents, displayQueue, isQueueOutdated } = require('./songqueue');
 const { activeQueue } = require('./commands/queue');
+const { guildPlaySessions } = require('./commands/utils/playsession');
 require('dotenv').config()
 
 const setupDatabase = async () => {
@@ -143,26 +143,33 @@ client.on(Events.InteractionCreate, async interaction => {
         }
     } else if (interaction.isButton()) {
         const currentQueueMessageId = activeQueue.get("id")
-        if (interaction.message.id !== currentQueueMessageId || isQueueOutdated())
-            return interaction.reply("**❌ Queue is outdated. Please call `/queue` again **");
+        const session = guildPlaySessions.get(interaction.guild.id)
 
-        if (interaction.customId === 'next') {
-            let queueSize = getDisplayQueueSize()
-            let numQueueItems = getNumQueueItemsToDisplay()
-            let topOfQueue = getTopOfQueue()
-            if (queueSize > (topOfQueue + numQueueItems)) {
-                setTopOfQueue(topOfQueue + numQueueItems)
-                const { queueList, rowComponents} = queueViewComponents()
-                await interaction.update({ embeds: [queueList], components: [rowComponents] });
+        if (session) {
+            const songQueue = session.GetQueue()
+            if (interaction.message.id !== currentQueueMessageId || songQueue.isQueueOutdated())
+                return interaction.reply("**❌ Queue is outdated. Please call `/queue` again **");
+
+            if (interaction.customId === 'next') {
+                let queueSize = songQueue.getDisplayQueueSize()
+                let numQueueItems = songQueue.getNumQueueItemsToDisplay()
+                let topOfQueue = songQueue.getTopOfQueue()
+                if (queueSize > (topOfQueue + numQueueItems)) {
+                    songQueue.setTopOfQueue(topOfQueue + numQueueItems)
+                    const { queueList, rowComponents} = songQueue.queueViewComponents()
+                    await interaction.update({ embeds: [queueList], components: [rowComponents] });
+                }
+            } else if (interaction.customId === 'back') {
+                let numQueueItems = songQueue.getNumQueueItemsToDisplay()
+                let topOfQueue = songQueue.getTopOfQueue()
+                if ((topOfQueue - numQueueItems) >= 0) {
+                    songQueue.setTopOfQueue(topOfQueue - numQueueItems)
+                    const { queueList, rowComponents} = songQueue.queueViewComponents()
+                    await interaction.update({ embeds: [queueList], components: [rowComponents] });
+                }
             }
-        } else if (interaction.customId === 'back') {
-            let numQueueItems = getNumQueueItemsToDisplay()
-            let topOfQueue = getTopOfQueue()
-            if ((topOfQueue - numQueueItems) >= 0) {
-                setTopOfQueue(topOfQueue - numQueueItems)
-                const { queueList, rowComponents} = queueViewComponents()
-                await interaction.update({ embeds: [queueList], components: [rowComponents] });
-            }
+        } else {
+            await interaction.update("❓ **Session does not exist**");
         }
     }
 })

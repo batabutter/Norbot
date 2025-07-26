@@ -1,7 +1,6 @@
-const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js')
-const { songQueue, isEmpty, setDisplayQueue, queueViewComponents, getTopOfQueue, getNumQueueItemsToDisplay, setQueueOutdated } = require('../songqueue');
-const { EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js')
 const { checkConnection } = require('./utils/checkvoiceconnection');
+const { guildPlaySessions } = require('./utils/playsession');
 const activeQueue = new Map()
 
 module.exports = {
@@ -10,17 +9,21 @@ module.exports = {
         .setDescription('Displays current song queue'),
     async execute(interaction) {
 
-        const validConnection = await checkConnection(interaction)
+        const session = guildPlaySessions.get(interaction.guild.id)
+
+        const validConnection = await checkConnection(interaction, session)
+
+        const songQueue = session.GetQueue()
 
         if (validConnection) {
-            setQueueOutdated(false)
+            songQueue.setQueueOutdated(false)
 
-            setDisplayQueue([...songQueue])
-
-            if (isEmpty())
+            if (songQueue.isEmpty())
                 return interaction.reply("**Queue is empty. 🍃**")
 
-            const { queueList, rowComponents } = queueViewComponents()
+            songQueue.setDisplayQueue([...songQueue.Queue()])
+
+            const { queueList, rowComponents } = songQueue.queueViewComponents()
 
             let res
 
@@ -35,7 +38,6 @@ module.exports = {
                 });
 
             activeQueue.set("id", res.id)
-
 
             return res
         }

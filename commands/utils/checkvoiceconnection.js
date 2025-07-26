@@ -2,7 +2,12 @@ const { getVoiceConnection } = require("@discordjs/voice")
 
 module.exports = {
 
-    async checkConnection(interaction) {
+    async checkConnection(interaction, session) {
+
+        if (!session) {
+            await interaction.reply("**❌ I am not connected to a voice channel.**")
+            return false
+        }
 
         if (!interaction.member.voice.channel) {
             await interaction.reply("**❓ You're not connected to any voice channel.**")

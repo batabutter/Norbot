@@ -1,5 +1,4 @@
 const { SlashCommandBuilder } = require('discord.js')
-const { songQueue, getSize, isEmpty } = require('../songqueue');
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
