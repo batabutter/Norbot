@@ -3,8 +3,10 @@ const { getVoiceConnection, AudioPlayerStatus } = require('@discordjs/voice');
 const {
     songQueue,
     getSize,
-    isEmpty
+    isEmpty,
+    setQueueOutdated
 } = require('../songqueue');
+const { checkConnection } = require('./utils/checkvoiceconnection');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,24 +14,25 @@ module.exports = {
         .setDescription('Skip current song in queue'),
     async execute(interaction) {
 
-        const connection = getVoiceConnection(interaction.guild.id);
-        console.log(connection)
+        const validConnection = await checkConnection(interaction)
 
-        if (!connection)
-            return interaction.reply("**I am not connected to a voice channel.**")
+        if (validConnection) {
+            const connection = getVoiceConnection(interaction.guild.id);
 
-        const player = connection.state.subscription?.player;
+            setQueueOutdated(true)
 
-        player.on(AudioPlayerStatus.Playing, () => {
-            console.log('The audio player has started playing!');
-        });
+            const player = connection.state.subscription?.player;
 
-        if (!player) {
-            return interaction.reply("No active player found.");
+            player.on(AudioPlayerStatus.Playing, () => {
+                console.log('The audio player has started playing!');
+            });
+
+            if (!player) {
+                return interaction.reply("No active player found.");
+            }
+
+            player.stop()
+            await interaction.reply("** Song skipped! **⏭️")
         }
-
-        player.stop()
-        await interaction.reply("** Song skipped! **⏭️")
-
     }
 }

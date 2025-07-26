@@ -1,16 +1,44 @@
+const { ButtonBuilder, ActionRow, ActionRowBuilder, EmbedBuilder, ButtonStyle } = require("discord.js")
+
 let songQueue = []
 let isPlayingFlag = false
 let loopSong = false
 let loopQueue = false
 let lastPlayedSong = {}
+let displayQueue = []
+let topOfQueue = 0
+let numQueueItemsShow = 2
+let queueOutdated = false
 
-const clearQueue = () => {
-    songQueue = []
+const clearQueue = () => { 
+    songQueue = [] 
+    queueOutdated = true
 }
+
+const setDisplayQueue = (queue) =>  { 
+    displayQueue = queue
+    topOfQueue = 0
+    }
+
+const getDisplayQueueSize = (queue) => displayQueue.length
+
+const getTopOfQueue = () => topOfQueue
+
+const setTopOfQueue = (value) => { topOfQueue = value }
+
+const setQueueOutdated = (value) => { queueOutdated = value }
+
+const isQueueOutdated = () => queueOutdated
+
+const getPlayingInfo = () => lastPlayedSong
+
+
+const getNumQueueItemsToDisplay = () => numQueueItemsShow
 
 const removeSongAtPositon = (position) => {
     let result = false
-    if (position >=  0 && position < songQueue.length) {
+    queueOutdated = true
+    if (position >= 0 && position < songQueue.length) {
         songQueue.splice(position, 1)
         result = true
     } else {
@@ -54,11 +82,12 @@ const addSong = (url, playerName, songName) => {
     console.log("Adding...")
     console.log(newSong)
     songQueue.push(newSong)
+    queueOutdated = true
 }
 
 const removeSong = () => {
 
-    console.log("Removing song... "+loopQueue)
+    console.log("Removing song... " + loopQueue)
 
     let result = {}
 
@@ -67,7 +96,7 @@ const removeSong = () => {
         let returl = songQueue[0].url
         let songName = songQueue[0].name
         let playerName = songQueue[0].playerName
-        result= {
+        result = {
             url: returl,
             name: songName,
             player: playerName
@@ -80,8 +109,9 @@ const removeSong = () => {
         if (loopQueue)
             addSong(lastPlayedSong.url, lastPlayedSong.player, lastPlayedSong.name)
     } else {
-       console.log("Queue empty") 
+        console.log("Queue empty")
     }
+    queueOutdated = true
 
     return result
 }
@@ -106,8 +136,52 @@ const toggleLoopQueue = () => {
 
 const isPlaying = () => isPlayingFlag
 
+const queueViewComponents = () => {
+    const queueSize = displayQueue.length
+    const endIndex = numQueueItemsShow+topOfQueue
+
+    const components = []
+
+    const next = new ButtonBuilder()
+        .setCustomId('next')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("➡️")
+
+    const back = new ButtonBuilder()
+        .setCustomId('back')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji("⬅️")
+
+    console.log("What>>> top of queue"+topOfQueue)
+
+    let shortenedQueue = displayQueue.slice(topOfQueue, queueSize > endIndex ? endIndex : queueSize).map((song, index) => {
+        return `${index + 1 + (topOfQueue)}. ${song.name}\n`;
+    })
+
+    console.log("Display queue >" )
+    console.log(displayQueue)
+    console.log("Short queue >" )
+    console.log(shortenedQueue)
+
+    const queueList = new EmbedBuilder()
+        .setTitle(`Showing 10 songs out of ${queueSize} total... 🎶`)
+        .setDescription(`\`${shortenedQueue.join('\n')}\``)
+        .setColor(0x06402B)
+
+    if (topOfQueue != 0)
+        components.push(back)
+    if (endIndex < queueSize)
+        components.push(next)
+
+    const rowComponents = new ActionRowBuilder().addComponents(...components)
+
+    return { queueList, rowComponents }
+
+}
+
 module.exports = {
     songQueue,
+    displayQueue,
     isPlayingFlagToggle,
     isPlaying,
     isEmpty,
@@ -120,5 +194,14 @@ module.exports = {
     isLoopQueue,
     toggleLoop,
     toggleLoopQueue,
-    setPlayingSong
+    setPlayingSong,
+    queueViewComponents,
+    setDisplayQueue,
+    getDisplayQueueSize,
+    setTopOfQueue,
+    getTopOfQueue,
+    getNumQueueItemsToDisplay,
+    setQueueOutdated,
+    isQueueOutdated,
+    getPlayingInfo,
 };

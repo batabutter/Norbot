@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
-const { songQueue, isEmpty, removeSongAtPositon } = require('../songqueue');
+const { songQueue, isEmpty, removeSongAtPositon, setQueueOutdated } = require('../songqueue');
+const { checkConnection } = require('./utils/checkvoiceconnection');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,15 +13,19 @@ module.exports = {
         ),
     async execute(interaction) {
 
-        const position = interaction.options.getInteger('position')
+        const validconnection = checkConnection(interaction)
 
-        if (isEmpty())
-            return interaction.reply("**Queue is already empty. 🍃**")
-    
-        const result = removeSongAtPositon(position-1)
+        if (validconnection) {
+            const position = interaction.options.getInteger('position')
 
-        return interaction.reply(result ? "**Position removed cleared. **✅" :
-            "**❌ Invalid position. Please specify a position within the queue.**"
-        );
+            if (isEmpty())
+                return interaction.reply("**Queue is already empty. 🍃**")
+
+            const result = removeSongAtPositon(position - 1)
+
+            return interaction.reply(result ? "**Position removed cleared. **✅" :
+                "**❌ Invalid position. Please specify a position within the queue.**"
+            );
+        }
     }
 }

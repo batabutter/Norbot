@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { joinVoiceChannel } = require('@discordjs/voice');
+const { setQueueOutdated, clearQueue } = require('../songqueue');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,11 +14,13 @@ module.exports = {
         ),
     async execute(interaction) {
         try {
+            clearQueue()
+            setQueueOutdated(true)
             const sent = await interaction.reply({
                 content: "Joining...",
                 fetchReply: true
             })
-            const voiceChannel = interaction.options.getChannel('channel')
+            const voiceChannel = await interaction.options.getChannel('channel')
 
             if (voiceChannel == null)
                 await interaction.editReply(`Please give a channel name `)
@@ -27,7 +30,7 @@ module.exports = {
                     guildId: voiceChannel.guild.id,
                     adapterCreator: voiceChannel.guild.voiceAdapterCreator,
                 });
-                await interaction.reply(`Joined.`)
+                await interaction.editReply(`Joined.`)
             }
 
         } catch (error) {

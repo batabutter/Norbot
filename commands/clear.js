@@ -1,17 +1,21 @@
 const { SlashCommandBuilder } = require('discord.js')
-const { isEmpty, clearQueue } = require('../songqueue');
+const { isEmpty, clearQueue, setQueueOutdated } = require('../songqueue');
+const { checkConnection } = require('./utils/checkvoiceconnection');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('clear')
         .setDescription('Clears the queue.'),
     async execute(interaction) {
+        const validConnection = await checkConnection(interaction)
 
-        if (isEmpty())
-            return interaction.reply("**Queue is already empty. 🍃**")
+        if (validConnection) {
+            if (isEmpty())
+                return interaction.reply("**Queue is already empty. 🍃**")
 
-        clearQueue()
+            clearQueue()
 
-        return interaction.reply("**Queue cleared. **✅");
+            return interaction.reply("**Queue cleared. **✅");
+        }
     }
 }

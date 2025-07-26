@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { toggleLoopQueue } = require('../songqueue');
+const { checkConnection } = require('./utils/checkvoiceconnection');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -7,10 +8,18 @@ module.exports = {
         .setDescription('Toggles the loop for the entire queue'),
     async execute(interaction) {
 
-        const loop = toggleLoopQueue()
+        const validConnection = checkConnection()
 
-        const result = loop ? "on" : "off"
+        if (validConnection) {
+            try {
+                const loop = toggleLoopQueue()
 
-        return interaction.reply(`**LoopQueue is ${result}. **🔁`)
+                const result = loop ? "on" : "off"
+
+                return interaction.reply(`**LoopQueue is ${result}. **🔁`)
+            } catch (error) {
+                console.log("Loop error: "+error.message)
+            }
+        }
     }
 }

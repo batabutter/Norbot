@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { toggleLoop } = require('../songqueue');
+const { checkConnection } = require('./utils/checkvoiceconnection');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -7,10 +8,15 @@ module.exports = {
         .setDescription('Toggles the loop for the current song'),
     async execute(interaction) {
 
-        const loop = toggleLoop()
+        const validConnection = await checkConnection(interaction)
 
-        const result = loop ? "on" : "off"
+        if (validConnection) {
+            const loop = toggleLoop()
 
-        return interaction.reply(`**Loop is ${result}. **🔁`)
+            const result = loop ? "on" : "off"
+
+            return interaction.reply(`**Loop is ${result}. **🔁`)
+        }
+
     }
 }

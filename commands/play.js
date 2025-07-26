@@ -11,7 +11,8 @@ const {
     addSong,
     isLoop,
     isLoopQueue,
-    setPlayingSong
+    setPlayingSong,
+    setQueueOutdated
 } = require('../songqueue');
 
 const filePath = path.resolve(__dirname, 'audio.mp3');
@@ -63,7 +64,7 @@ module.exports = {
 
             connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
                 try {
-                    console.log("Destroying connection")
+                    console.log("Destroying connection by disconnecting")
                     connection.destroy()
                 } catch (error) {
                     console.log(error.message)
@@ -105,7 +106,7 @@ module.exports = {
 
             connection.on(VoiceConnectionStatus.Destroyed, async (oldState, newState) => {
                 try {
-                    console.log("Broken?")
+                    console.log("Connection destroyed.")
                 } catch (error) {
                     console.log(error.message)
                 }
@@ -135,7 +136,7 @@ const playNextResource = async (url, player, connection, username, title) => {
         isPlayingFlagToggle(true)
         return resource
     })
-
+    setQueueOutdated(true)
     setPlayingSong(url, username, title)
 }
 

@@ -1,6 +1,7 @@
-const { SlashCommandBuilder } = require('discord.js')
-const { songQueue, getSize, isEmpty } = require('../songqueue');
+const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js')
+const { songQueue, isEmpty, setDisplayQueue, queueViewComponents, getTopOfQueue, getNumQueueItemsToDisplay, setQueueOutdated } = require('../songqueue');
 const { EmbedBuilder } = require('discord.js');
+const activeQueue = new Map()
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,22 +9,28 @@ module.exports = {
         .setDescription('Displays current song queue'),
     async execute(interaction) {
 
-        if (isEmpty())
-            return interaction.reply("**Queue is empty. 🍃**")
+        const validConnection = await checkConnection(interaction)
 
-        let shortenedQueue = songQueue.slice(0, getSize() > 5 ? 5 : getSize()).map((song, index) => {
-            return `**${index + 1}.** ${song.name}`;
-        })
+        if (validConnection) {
+            setQueueOutdated(false)
 
-        const queueList = new EmbedBuilder()
-            .setTitle(`Showing 5 songs out of ${getSize()} total... 🎶`)
-            .setDescription(`\`${shortenedQueue.join('\n')}\``)  // Join the songs with a line break
-            .setColor(0x06402B);
+            setDisplayQueue([...songQueue])
 
-       
+            if (isEmpty())
+                return interaction.reply("**Queue is empty. 🍃**")
 
-        return interaction.reply({ embeds: [queueList] });
+            const { queueList, rowComponents } = queueViewComponents()
+
+            const res = await interaction.reply({
+                embeds: [queueList], components: [rowComponents],
+                fetchReply: true
+            });
+
+            activeQueue.set("id", res.id)
 
 
-    }
+            return res
+        }
+    },
+    activeQueue
 }

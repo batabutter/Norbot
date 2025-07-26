@@ -12,15 +12,16 @@
 - **/clear** 
     ~~Clears entire queue~~
 - **/info** 
-    Shows information about the current song that is playing
+    ~~Shows information about the current song that is playing~~
 - **/help**
-    Gives list of available commands
+    ~~Gives list of available commands~~
 
 ## Other
 - Make it so you can see if loop queue or loop is on from info and the queue command
-- Allow you to view differnet pages of the queue
+~~- Allow you to view differnet pages of the queue~~
 ~~- Figure out how to handle massive videos ~~
-- Queue entire playlist if given link (or first like, 100 songs)
+- ~~Queue entire playlist if given link (or first like, 100 songs)~~
 - Make sure that other input types are checked (better error handling)
-- Add further checks to make sure you're in the voice channel
-- Add optional input to skip mutliple songs
+~~- Add further checks to make sure you're in the voice channel~~
+- Add optional input to skip mutliple songs? Maybe???
+~~- Move the voice channel checks into a different module~~

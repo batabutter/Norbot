@@ -11,13 +11,15 @@ const {
 const fs = require('fs')
 const path = require('path')
 const { token } = require('./config.json');
+const { getNumQueueItemsToDisplay, getDisplayQueueSize, getTopOfQueue, setTopOfQueue, queueViewComponents, displayQueue, isQueueOutdated } = require('./songqueue');
+const { activeQueue } = require('./commands/queue');
 require('dotenv').config()
 
 const setupDatabase = async () => {
     try {
-        
+
     } catch (error) {
-        
+
     }
 }
 
@@ -59,7 +61,7 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates, 
+        GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMembers
     ],
     partials: [
@@ -83,7 +85,7 @@ for (const file of commandFiles) {
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command)
     } else {
-        console.log(`The command ${filePath} is missing with required "data" `+
+        console.log(`The command ${filePath} is missing with required "data" ` +
             `or execute property.`)
     }
 }
@@ -115,30 +117,52 @@ client.once(Events.ClientReady, async () => {
 })
 
 client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand())
-        return
+    if (interaction.isChatInputCommand()) {
+        const command = client.commands.get(interaction.commandName)
 
-    const command = client.commands.get(interaction.commandName)
+        if (!command) {
+            console.error(`No command matching ${interaction.commandName} found`)
+            return
+        }
 
-    if (!command) {
-        console.error(`No command matching ${interaction.commandName} found`)
-        return
-    }
+        try {
+            await command.execute(interaction)
+        } catch (error) {
+            console.log(error.message)
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp({
+                    content: "There was an error executing this command",
+                    ephemeral: true
+                })
+            } else {
+                await interaction.reply({
+                    content: "There was an error executing this command",
+                    ephemeral: true
+                })
+            }
+        }
+    } else if (interaction.isButton()) {
+        const currentQueueMessageId = activeQueue.get("id")
+        if (interaction.message.id !== currentQueueMessageId || isQueueOutdated())
+            return interaction.reply("**❌ Queue is outdated. Please call `/queue` again **");
 
-    try {
-        await command.execute(interaction)
-    } catch (error) {
-        console.log(error.message)
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({
-                content: "There was an error executing this command",
-                ephemeral: true
-            })
-        } else {
-            await interaction.reply({
-                content: "There was an error executing this command",
-                ephemeral: true
-            })
+        if (interaction.customId === 'next') {
+            let queueSize = getDisplayQueueSize()
+            let numQueueItems = getNumQueueItemsToDisplay()
+            let topOfQueue = getTopOfQueue()
+            if (queueSize > (topOfQueue + numQueueItems)) {
+                setTopOfQueue(topOfQueue + numQueueItems)
+                const { queueList, rowComponents} = queueViewComponents()
+                await interaction.update({ embeds: [queueList], components: [rowComponents] });
+            }
+        } else if (interaction.customId === 'back') {
+            let numQueueItems = getNumQueueItemsToDisplay()
+            let topOfQueue = getTopOfQueue()
+            if ((topOfQueue - numQueueItems) >= 0) {
+                setTopOfQueue(topOfQueue - numQueueItems)
+                const { queueList, rowComponents} = queueViewComponents()
+                await interaction.update({ embeds: [queueList], components: [rowComponents] });
+            }
         }
     }
 })
