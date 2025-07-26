@@ -89,8 +89,8 @@ class PlaySession {
       /*
         Format declarations:
       */
-      const formattedHours = String(Math.round(lengthSeconds / 3600)).padStart(2, 0)
-      const formattedSeconds = String(Math.round((lengthSeconds % 3600) / 60)).padStart(2, 0)
+      const formattedHours = String(Math.round(lengthSeconds / 60))
+      const formattedSeconds = String(Math.round((lengthSeconds % 60))).padStart(2, 0)
       const audioLength = `[${formattedHours}:${formattedSeconds}]`
 
       return { retUrl, numUnavailableSongs, numSongs, info, audioLength }
