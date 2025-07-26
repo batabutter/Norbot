@@ -27,3 +27,5 @@
 ~~- Move the voice channel checks into a different module~~
 - Add message saying how many videos were unavailable in a playlist
 - Make all lines under 80 characters
+- Handle if it cannot join a voice channel
+- Make bot work while in different servers
