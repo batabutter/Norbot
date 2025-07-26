@@ -23,7 +23,7 @@ class PlaySession {
     this.player = player
     this.subscription = subscription
     this.interaction = interaction
-    this.reponse=""
+    this.reponse = ""
 
     player.on(AudioPlayerStatus.Idle, async () => {
       console.log("Free to play a song")
@@ -31,9 +31,13 @@ class PlaySession {
         const content = this.songQueue.isLoop() ? this.songQueue.getPlayingInfo() : this.songQueue.removeSong();
         this.songQueue.isPlayingFlagToggle(false)
 
-        console.log("What the fuck")
-        this.PlayNextResource(content.url, true)
+        this.PlayNextResource(content.url)
+
+        return await this.interaction.editReply(`Now Playing: ` +
+          `**\"${content.name}\"** ${content.length}\nin \`${this.interaction.member.voice.channel.name}\` 🔊`)
+
       } else {
+
         return this.interaction.channel.send(`** Player stopped. ** ⏹️`);
       }
     })
@@ -72,24 +76,22 @@ class PlaySession {
   GetVideoInfo = async (url, playerName) => {
     try {
       console.log("Entering video info")
-      let info = await ytdl.getBasicInfo(url)
+      const { retUrl, numUnavailableSongs, numSongs } = await this.validateUrl(url, playerName, this.songQueue)
+      let info = await ytdl.getBasicInfo(retUrl)
 
       if (!info)
-        return interaction.editReply("**❌ No results found.**")
+        return interaction.editReply("**❌ Video unavailable.**")
 
       const lengthSeconds = info.videoDetails.lengthSeconds
       if (lengthSeconds > maxVideoLength)
         return interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
 
       /*
-               Format declarations:
-            */
+        Format declarations:
+      */
       const formattedHours = String(Math.round(lengthSeconds / 3600)).padStart(2, 0)
       const formattedSeconds = String(Math.round((lengthSeconds % 3600) / 60)).padStart(2, 0)
       const audioLength = `[${formattedHours}:${formattedSeconds}]`
-      console.log("What > " + url)
-
-      const { retUrl, numUnavailableSongs, numSongs } = await this.validateUrl(url, playerName, this.songQueue)
 
       return { retUrl, numUnavailableSongs, numSongs, info, audioLength }
 
@@ -99,7 +101,7 @@ class PlaySession {
     }
   }
 
-  PlayNextResource = async (url, reply) => {
+  PlayNextResource = async (url) => {
     try {
       const { retUrl, numUnavailableSongs, numSongs, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
       console.log("Url is now " + retUrl)
@@ -107,7 +109,12 @@ class PlaySession {
 
       if (this.songQueue.isPlaying()) {
         console.log("A song is playing...")
-        this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title)
+        this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
+
+        return await this.interaction.followUp(`Queued: ` +
+          `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
+          \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
+          `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
 
       } else {
         const stream = await ytdl(retUrl, { filter: 'audioonly' })
@@ -122,30 +129,13 @@ class PlaySession {
         })
         this.songQueue.setQueueOutdated(true)
         this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
+        this.songQueue.isPlayingFlagToggle(true)
       }
 
-      this.Reply(info, audioLength, numSongs, numUnavailableSongs, reply)
-      this.songQueue.isPlayingFlagToggle(true)
+      return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
+
     } catch (error) {
       await this.interaction.editReply(`❗ **Something went wrong... ** \`${error.message}\``)
-    }
-  }
-
-  Reply = async (info, audioLength, numSongs, numUnavailableSongs, sendReplyMsg) => {
-    if (!this.songQueue.isPlaying())
-      await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
-    else {
-      if (sendReplyMsg)
-        return await this.interaction.followUp(`${!this.songQueue.isPlaying() ? "Now playing" : "Queued"}:` +
-          `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
-          \n-# Queued ${numSongs} songs. ✅` +
-          `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
-        else {
-          return await this.interaction.editReply(`${!this.songQueue.isPlaying() ? "Now playing" : "Queued"}:` +
-          `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
-          \n-# Queued ${numSongs} songs. ✅` +
-          `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
-        }
     }
   }
 
@@ -220,7 +210,7 @@ class PlaySession {
     return { retUrl, numUnavailableSongs, numSongs }
   }
 
-  SetInteraction = (interaction) => {this.interaction = interaction}
+  SetInteraction = (interaction) => { this.interaction = interaction }
 
   GetConnection = () => this.connection
 

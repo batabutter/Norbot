@@ -65,7 +65,7 @@ module.exports = {
              * Start Playing logic > 
              */
             session.SetInteraction(interaction)
-            session.PlayNextResource(interaction.options.getString('input'), false)
+            session.PlayNextResource(interaction.options.getString('input'))
 
         } catch (error) {
             await interaction.editReply(`❗ **Something went wrong... ** \`${error.message}\``)

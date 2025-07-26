@@ -101,6 +101,9 @@ class SongQueue {
                 player: playerName,
                 length: audioLength
             }
+
+            console.log("Removing >")
+            console.log(result)
         }
 
         if (result) {
