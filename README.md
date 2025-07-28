@@ -1,4 +1,4 @@
- # This is a functional YouTube to MP3 player for my Disocrd server.
+ # This is a functional YouTube to MP3 player for my Discord server.
 
 ## To run this bot, install the necessary dependencies,
-## Either run "nodemon index.js" or node index.js
+- **run npm start**
