@@ -9,9 +9,10 @@ module.exports = {
     async execute(interaction) {
         const session = guildPlaySessions.get(interaction.guild.id)
 
-        const validConnection = checkConnection(interaction, session)
+        const validConnection = await checkConnection(interaction, session)
 
-        if (validConnection) {
+        if (validConnection) { 
+
             const songQueue = session.GetQueue()
             try {
                 const loop = songQueue.toggleLoopQueue()

@@ -25,7 +25,7 @@ module.exports = {
             await interaction.reply("**❌ You cannot skip from a different voice channel.**")
             return false
         }
-
+        
         return true
     }
 
