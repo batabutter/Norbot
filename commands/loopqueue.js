@@ -11,9 +11,8 @@ module.exports = {
 
         const validConnection = checkConnection(interaction, session)
 
-        const songQueue = session.GetQueue()
-
         if (validConnection) {
+            const songQueue = session.GetQueue()
             try {
                 const loop = songQueue.toggleLoopQueue()
 

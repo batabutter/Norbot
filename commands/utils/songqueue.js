@@ -77,8 +77,11 @@ class SongQueue {
             length: audioLength,
             position: this.getSize()
         }
+
+        /*
         console.log("Adding...")
         console.log(newSong)
+        */
         this.songQueue.push(newSong)
         this.queueOutdated = true
     }
@@ -155,11 +158,6 @@ class SongQueue {
         let shortenedQueue = this.displayQueue.slice(this.topOfQueue, queueSize > endIndex ? endIndex : queueSize).map((song, index) => {
             return `${index + 1 + (this.topOfQueue)}. ${song.name}\n`;
         })
-
-        console.log("Display queue >")
-        console.log(this.displayQueue)
-        console.log("Short queue >")
-        console.log(shortenedQueue)
 
         const queueList = new EmbedBuilder()
             .setTitle(`Showing first ${this.numQueueItemsShow} songs out of ${queueSize} total... 🎶`)

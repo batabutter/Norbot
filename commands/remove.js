@@ -16,9 +16,10 @@ module.exports = {
 
         const validconnection = checkConnection(interaction, session)
 
-        const songQueue = session.GetQueue()
 
         if (validconnection) {
+            const songQueue = session.GetQueue()
+
             const position = interaction.options.getInteger('position')
 
             if (songQueue.isEmpty())

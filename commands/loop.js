@@ -11,10 +11,10 @@ module.exports = {
         const session = guildPlaySessions.get(interaction.guild.id)
 
         const validConnection = await checkConnection(interaction, session)
-        
-        const songQueue = session.GetQueue()
 
         if (validConnection) {
+            const songQueue = session.GetQueue()
+
             const loop = songQueue.toggleLoop()
 
             const result = loop ? "on" : "off"
