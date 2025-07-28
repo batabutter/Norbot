@@ -26,10 +26,10 @@ class PlaySession {
     this.reponse = ""
 
     player.on(AudioPlayerStatus.Idle, async () => {
+      this.songQueue.isPlayingFlagToggle(false)
       console.log("Free to play a song")
       if (!this.songQueue.isEmpty() || this.songQueue.isLoop() || this.songQueue.isLoopQueue()) {
         const content = this.songQueue.isLoop() ? this.songQueue.getPlayingInfo() : this.songQueue.removeSong();
-        this.songQueue.isPlayingFlagToggle(false)
 
         this.PlayNextResource(content.url)
 
@@ -159,6 +159,7 @@ class PlaySession {
     let retUrl = ""
     let numUnavailableSongs = 0
     let numSongs = 0
+    console.log("Given url > "+url)
     if (!ytdl.validateURL(url)) {
       try {
         const res = await fetch(`${baseUrl}${url}`)

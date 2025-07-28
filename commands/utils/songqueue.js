@@ -86,6 +86,9 @@ class SongQueue {
     removeSong = () => {
 
         console.log("Removing song... ")
+        if (this.loopQueue)
+                this.addSong(this.lastPlayedSong.url, this.lastPlayedSong.player, this.lastPlayedSong.name, this.lastPlayedSong.length)
+            
 
         let result = {}
 
@@ -106,11 +109,9 @@ class SongQueue {
             console.log(result)
         }
 
-        if (result) {
+        if (Object.keys(result).length > 0) {
             this.songQueue.shift()
             console.log("Popping > ")
-            if (this.loopQueue)
-                this.addSong(this.lastPlayedSong.url, this.lastPlayedSong.player, this.lastPlayedSong.name, this.lastPlayedSong.length)
         } else {
             console.log("Queue empty")
         }

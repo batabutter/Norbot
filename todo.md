@@ -30,3 +30,6 @@
 ~~- Handle if it cannot join a voice channel~~
 ~~- Make bot work while in different servers~~
 ~~- Maybe make it reply to the message of what it is currenly playing~~
+- Make all the messages embeds
+- Add limit to queue size
+- Get show time in song in info

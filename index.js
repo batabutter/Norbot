@@ -15,14 +15,6 @@ const { activeQueue } = require('./commands/queue');
 const { guildPlaySessions } = require('./commands/utils/playsession');
 require('dotenv').config()
 
-const setupDatabase = async () => {
-    try {
-
-    } catch (error) {
-
-    }
-}
-
 const deployCommands = async () => {
     try {
         const commands = []
@@ -109,6 +101,12 @@ client.once(Events.ClientReady, async () => {
         }]
     })
 
+    /**
+     * client.user.setBanner('./norbit.jpg')
+        .then(user => console.log(`New banner set!`))
+        .catch(console.error)
+     */
+
     client.user.setStatus(status)
 
 
@@ -156,7 +154,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 let topOfQueue = songQueue.getTopOfQueue()
                 if (queueSize > (topOfQueue + numQueueItems)) {
                     songQueue.setTopOfQueue(topOfQueue + numQueueItems)
-                    const { queueList, rowComponents} = songQueue.queueViewComponents()
+                    const { queueList, rowComponents } = songQueue.queueViewComponents()
                     await interaction.update({ embeds: [queueList], components: [rowComponents] });
                 }
             } else if (interaction.customId === 'back') {
@@ -164,7 +162,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 let topOfQueue = songQueue.getTopOfQueue()
                 if ((topOfQueue - numQueueItems) >= 0) {
                     songQueue.setTopOfQueue(topOfQueue - numQueueItems)
-                    const { queueList, rowComponents} = songQueue.queueViewComponents()
+                    const { queueList, rowComponents } = songQueue.queueViewComponents()
                     await interaction.update({ embeds: [queueList], components: [rowComponents] });
                 }
             }
