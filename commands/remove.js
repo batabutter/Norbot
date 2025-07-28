@@ -14,7 +14,7 @@ module.exports = {
     async execute(interaction) {
         let session = guildPlaySessions.get(interaction.guild.id)
 
-        const validconnection = checkConnection(interaction, session)
+        const validconnection = await checkConnection(interaction, session)
 
 
         if (validconnection) {
