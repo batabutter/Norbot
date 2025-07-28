@@ -76,6 +76,7 @@ class PlaySession {
   GetVideoInfo = async (url, playerName) => {
     try {
       console.log("Entering video info")
+
       const { retUrl, numUnavailableSongs, numSongs } = await this.validateUrl(url, playerName, this.songQueue)
       let info = await ytdl.getBasicInfo(retUrl)
 
@@ -96,8 +97,7 @@ class PlaySession {
       return { retUrl, numUnavailableSongs, numSongs, info, audioLength }
 
     } catch (error) {
-      console.log("Error in GetInfo")
-      await this.interaction.editReply(`❗ **Something went wrong... ** \`${error.message}\``)
+      console.log("Error in GetInfo > "+error.message)
     }
   }
 
@@ -135,7 +135,7 @@ class PlaySession {
       return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
 
     } catch (error) {
-      await this.interaction.editReply(`❗ **Something went wrong... ** \`${error.message}\``)
+      console.log(error.message)
     }
   }
 
@@ -159,18 +159,19 @@ class PlaySession {
     let retUrl = ""
     let numUnavailableSongs = 0
     let numSongs = 0
-    console.log("Given url > "+url)
     if (!ytdl.validateURL(url)) {
       try {
         const res = await fetch(`${baseUrl}${url}`)
         const json = await res.json()
+        
         if (!res.ok)
-          return this.interaction.editReply("**❌ Could not find a video with that url or title.**")
+          await this.interaction.editReply("**❌ Could not find a video with that url or title.**")
+
         retUrl = json[0]
-        console.log("Trying with > " + retUrl)
         numSongs++;
       } catch (error) {
         console.log(error.message)
+        return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
       }
     } else {
       const parsedURL = new URL(url)
@@ -202,6 +203,7 @@ class PlaySession {
           }
         } catch (error) {
           console.log(error.message)
+          return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
         }
       } else {
         numSongs++
@@ -209,6 +211,7 @@ class PlaySession {
     }
 
     return { retUrl, numUnavailableSongs, numSongs }
+
   }
 
   SetInteraction = (interaction) => { this.interaction = interaction }
