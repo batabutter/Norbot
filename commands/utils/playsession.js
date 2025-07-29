@@ -77,7 +77,7 @@ class PlaySession {
     try {
       console.log("Entering video info")
 
-      const { retUrl } = await this.validateUrl(url, playerName, this.songQueue)
+      const { retUrl } = await this.validateUrl(url, this.songQueue)
       let info = await ytdl.getBasicInfo(retUrl)
 
       if (!info)
@@ -165,11 +165,10 @@ class PlaySession {
 
   }
 
-  validateUrl = async (url, playerName) => {
-    let retUrl = ""
-    let numUnavailableSongs = 0
-    let numSongs = 1
+  validateUrl = async (url) => {
+    let retUrl = url
     let query = false
+
     if (!ytdl.validateURL(url)) {
       try {
         query = true
@@ -180,59 +179,21 @@ class PlaySession {
           return this.interaction.editReply("**❌ Could not find a video with that url or title.**")
 
         retUrl = json[0]
-        numSongs++;
+
       } catch (error) {
         console.log(error.message)
         return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
       }
-    } else {
-      const parsedURL = new URL(url)
-      const listId = parsedURL.searchParams.get("list")
-      let listItems = []
-      retUrl = url
-      /*
-      if (listId) {
-        console.log("Adding playlist > ")
-        const index = parsedURL.searchParams.get("index")
-        try {
-          const res = await fetch(`${playlistURL}${listId}`)
-          const json = await res.json()
-          if (!res.ok)
-            return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
-          listItems = json
-          if (!this.songQueue.isPlaying())
-            listItems.splice(index, 1);
-
-          for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
-            const itemURL = listItems[i]
-            try {
-              let info = await ytdl.getBasicInfo(itemURL)
-              if (info.videoDetails.lengthSeconds < maxVideoLength)
-                await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
-              numSongs++
-            } catch (error) {
-              console.log("Video unavailable")
-              numUnavailableSongs++
-            }
-          }
-        } catch (error) {
-          console.log(error.message)
-          return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
-        }
-      } else {
-        numSongs++
-      }
-      */
     }
 
-    return { retUrl, query }
+    return { retUrl }
 
   }
 
   AddPlaylist = async (url, playerName) => {
 
     let numUnavailableSongs = 0
-    let numSongs = 0 // Because of the current one
+    let numSongs = 1
 
     try {
 
@@ -274,12 +235,10 @@ class PlaySession {
           return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
         }
         this.songQueue.setLoadingSongs(false)
-      } else {
-        numSongs++
       }
       console.log("song count = " + numSongs)
-    } catch {
-      console.log("Adding stopped")
+    } catch (error) {
+      console.log("Adding stopped > "+error.message)
     } finally {
       return { numUnavailableSongs, numSongs }
     }
