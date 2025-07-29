@@ -14,8 +14,10 @@ module.exports = {
         const validConnection = await checkConnection(interaction, session)
 
         if (validConnection) {
+            
             const songQueue = session.GetQueue()
 
+            songQueue.setForceStop(true)
             songQueue.setQueueOutdated(true)
             songQueue.isPlayingFlagToggle(false)
 

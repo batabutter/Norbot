@@ -77,7 +77,7 @@ class PlaySession {
     try {
       console.log("Entering video info")
 
-      const { retUrl, numUnavailableSongs, numSongs } = await this.validateUrl(url, playerName, this.songQueue)
+      const { retUrl } = await this.validateUrl(url, playerName, this.songQueue)
       let info = await ytdl.getBasicInfo(retUrl)
 
       if (!info)
@@ -94,10 +94,10 @@ class PlaySession {
       const formattedSeconds = String(Math.round((lengthSeconds % 60))).padStart(2, 0)
       const audioLength = `[${formattedHours}:${formattedSeconds}]`
 
-      return { retUrl, numUnavailableSongs, numSongs, info, audioLength }
+      return { retUrl, info, audioLength }
 
     } catch (error) {
-      console.log("Error in GetInfo > "+error.message)
+      console.log("Error in GetInfo > " + error.message)
     }
   }
 
@@ -107,18 +107,15 @@ class PlaySession {
       if (this.songQueue.isTooFull())
         return this.interaction.editReply("**❌ Queue is too full! Please remove or clear the queue to add more songs.**")
 
-      const { retUrl, numUnavailableSongs, numSongs, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
+      this.songQueue.setLoadingSongs(true)
+
+      const { retUrl, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
       console.log("Url is now " + retUrl)
       console.log("Info is now ")
 
       if (this.songQueue.isPlaying()) {
         console.log("A song is playing...")
         this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
-
-        return await this.interaction.followUp(`Queued: ` +
-          `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
-          \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
-          `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
 
       } else {
         const stream = await ytdl(retUrl, { filter: 'audioonly' })
@@ -134,9 +131,20 @@ class PlaySession {
         this.songQueue.setQueueOutdated(true)
         this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
         this.songQueue.isPlayingFlagToggle(true)
+        await this.AddPlaylist(retUrl, this.interaction.user.tag)
+
+        this.songQueue.setLoadingSongs(false)
+
+        return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
       }
 
-      return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
+      const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
+      this.songQueue.setLoadingSongs(false)
+
+      return await this.interaction.editReply(`Queued: ` +
+        `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
+          \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
+        `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
 
     } catch (error) {
       console.log(error.message)
@@ -162,12 +170,14 @@ class PlaySession {
   validateUrl = async (url, playerName) => {
     let retUrl = ""
     let numUnavailableSongs = 0
-    let numSongs = 0
+    let numSongs = 1
+    let query = false
     if (!ytdl.validateURL(url)) {
       try {
+        query = true
         const res = await fetch(`${baseUrl}${url}`)
         const json = await res.json()
-        
+
         if (!res.ok)
           return this.interaction.editReply("**❌ Could not find a video with that url or title.**")
 
@@ -182,6 +192,7 @@ class PlaySession {
       const listId = parsedURL.searchParams.get("list")
       let listItems = []
       retUrl = url
+      /*
       if (listId) {
         console.log("Adding playlist > ")
         const index = parsedURL.searchParams.get("index")
@@ -213,9 +224,65 @@ class PlaySession {
       } else {
         numSongs++
       }
+      */
     }
 
-    return { retUrl, numUnavailableSongs, numSongs }
+    return { retUrl, query }
+
+  }
+
+  AddPlaylist = async (url, playerName) => {
+
+    let numUnavailableSongs = 0
+    let numSongs = 0 // Because of the current one
+
+    try {
+
+      const parsedURL = new URL(url)
+      const listId = parsedURL.searchParams.get("list")
+      let listItems = []
+      let retUrl = url
+      if (listId) {
+        console.log("Adding playlist > ")
+        const index = parsedURL.searchParams.get("index")
+        try {
+          const res = await fetch(`${playlistURL}${listId}`)
+          const json = await res.json()
+          if (!res.ok)
+            return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
+          listItems = json
+          if (this.songQueue.isPlaying())
+            listItems.splice(index, 1);
+
+          for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
+            const itemURL = listItems[i]
+            console.log("Trying with > " + itemURL)
+            let info
+            try {
+              info = await ytdl.getBasicInfo(itemURL)
+            } catch (error) {
+              console.log("Video unavailable > " + error.message)
+              numUnavailableSongs++
+            }
+            if (info && info.videoDetails.lengthSeconds < maxVideoLength) {
+              await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
+              numSongs++
+            }
+
+          }
+        } catch (error) {
+          console.log(error.message)
+          return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
+        }
+      } else {
+        numSongs++
+      }
+      console.log("song count = "+numSongs)
+    } catch {
+      console.log("Adding stopped")
+    } finally {
+      return { numUnavailableSongs, numSongs }
+    }
 
   }
 

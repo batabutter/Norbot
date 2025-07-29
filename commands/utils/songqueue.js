@@ -12,6 +12,8 @@ class SongQueue {
         this.topOfQueue = 0
         this.numQueueItemsShow = 10
         this.queueOutdated = false
+        this.forceStop = false
+        this.loadingSongs = false
     }
 
     clearQueue = () => {
@@ -71,6 +73,11 @@ class SongQueue {
     }
 
     addSong = (url, playerName, songName, audioLength) => {
+
+        if (this.forceStop) {
+            this.forceStop = false
+            throw new Error("** FORCE STOP **")
+        }
 
         if (this.songQueue.length >= MAX_VIDEOS_IN_QUEUE) {
             console.log("Queue is too full")
@@ -187,6 +194,14 @@ class SongQueue {
     Queue = () => this.songQueue
 
     isTooFull = () => this.songQueue.length >= MAX_VIDEOS_IN_QUEUE
+
+    setForceStop = (val) => {this.forceStop = val}
+
+    getForceStop = () => this.forceStop
+
+    setLoadingSongs = (val) => {this.loadingSongs = val}
+
+    getLoadingSongs = () => this.loadingSongs
 }
 
 module.exports = {

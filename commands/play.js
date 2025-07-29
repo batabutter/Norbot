@@ -46,7 +46,7 @@ module.exports = {
                         noSubscriber: NoSubscriberBehavior.Pause,
                     },
                 })
-                
+
                 session = new PlaySession(interaction.member.voice.channel.id,
                     tempConnection,
                     tempPlayer,
@@ -64,12 +64,17 @@ module.exports = {
             /**
              * Start Playing logic > 
              */
-            session.SetInteraction(interaction)
-            session.PlayNextResource(interaction.options.getString('input'))
+            if (songQueue.getLoadingSongs())
+                return await interaction.editReply(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
+
+             session.SetInteraction(interaction)
+
+            await session.PlayNextResource(interaction.options.getString('input'))
 
         } catch (error) {
             await interaction.editReply(`❗ **Something went wrong... ** \`${error.message}\``)
         }
 
     }
+
 }

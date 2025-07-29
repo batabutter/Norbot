@@ -14,6 +14,10 @@ module.exports = {
         const validConnection = await checkConnection(interaction, session)
         if (validConnection) {
             const songQueue = session.GetQueue()
+
+            if (songQueue.getLoadingSongs())
+                return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
+            
             songQueue.setQueueOutdated(false)
 
             if (songQueue.isEmpty())

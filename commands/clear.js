@@ -17,6 +17,7 @@ module.exports = {
             if (songQueue.isEmpty())
                 return interaction.reply("**Queue is already empty. 🍃**")
 
+            songQueue.setForceStop(true)
             songQueue.clearQueue()
 
             return interaction.reply("**Queue cleared. **✅");
