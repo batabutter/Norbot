@@ -23,8 +23,6 @@ module.exports = {
             if (songQueue.getLoadingSongs())
                 return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
 
-            songQueue.setForceStop(true)
-
             const position = interaction.options.getInteger('position')
 
             if (songQueue.isEmpty())

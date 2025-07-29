@@ -20,6 +20,7 @@ module.exports = {
             songQueue.setForceStop(true)
             songQueue.clearQueue()
 
+
             return interaction.reply("**Queue cleared. **✅");
         }
     }

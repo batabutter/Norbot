@@ -76,6 +76,7 @@ class SongQueue {
 
         if (this.forceStop) {
             this.forceStop = false
+            this.loadingSongs = false
             throw new Error("** FORCE STOP **")
         }
 
@@ -105,32 +106,19 @@ class SongQueue {
 
         let result = {}
 
-        if (!this.isEmpty()) {
 
-            let returl = this.songQueue[0].url
-            let songName = this.songQueue[0].name
-            let playerName = this.songQueue[0].playerName
-            let audioLength = this.songQueue[0].length
-            result = {
-                url: returl,
-                name: songName,
-                player: playerName,
-                length: audioLength
-            }
-
-            console.log("Removing >")
-            console.log(result)
-        }
-
-        if (this.loopQueue)
+        if (this.loopQueue) 
             this.addSong(this.lastPlayedSong.url, this.lastPlayedSong.player, this.lastPlayedSong.name, this.lastPlayedSong.length)
 
-        if (Object.keys(result).length > 0) {
-            this.songQueue.shift()
+        if (!this.isEmpty()) {
+            result = this.songQueue.shift()
+            console.log(result)
             console.log("Popping > ")
+            console.log(result)
         } else {
             console.log("Queue empty")
         }
+
         this.queueOutdated = true
 
         return result

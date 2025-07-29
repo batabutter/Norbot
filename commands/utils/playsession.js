@@ -107,14 +107,16 @@ class PlaySession {
       if (this.songQueue.isTooFull())
         return this.interaction.editReply("**❌ Queue is too full! Please remove or clear the queue to add more songs.**")
 
-      this.songQueue.setLoadingSongs(true)
-
       const { retUrl, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
       console.log("Url is now " + retUrl)
       console.log("Info is now ")
 
       if (this.songQueue.isPlaying()) {
         console.log("A song is playing...")
+
+        if (this.songQueue.getLoadingSongs())
+          return await this.interaction.editReply(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
+
         this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
 
       } else {
@@ -133,13 +135,9 @@ class PlaySession {
         this.songQueue.isPlayingFlagToggle(true)
         await this.AddPlaylist(retUrl, this.interaction.user.tag)
 
-        this.songQueue.setLoadingSongs(false)
-
         return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
       }
-
       const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
-      this.songQueue.setLoadingSongs(false)
 
       return await this.interaction.editReply(`Queued: ` +
         `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
@@ -243,6 +241,7 @@ class PlaySession {
       let listItems = []
       let retUrl = url
       if (listId) {
+        this.songQueue.setLoadingSongs(true)
         console.log("Adding playlist > ")
         const index = parsedURL.searchParams.get("index")
         try {
@@ -274,16 +273,17 @@ class PlaySession {
           console.log(error.message)
           return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
         }
+        this.songQueue.setLoadingSongs(false)
       } else {
         numSongs++
       }
-      console.log("song count = "+numSongs)
+      console.log("song count = " + numSongs)
     } catch {
       console.log("Adding stopped")
     } finally {
       return { numUnavailableSongs, numSongs }
     }
-
+    
   }
 
   SetInteraction = (interaction) => { this.interaction = interaction }

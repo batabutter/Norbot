@@ -17,7 +17,6 @@ module.exports = {
             
             const songQueue = session.GetQueue()
 
-            songQueue.setForceStop(true)
             songQueue.setQueueOutdated(true)
             songQueue.isPlayingFlagToggle(false)
 

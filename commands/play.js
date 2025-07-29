@@ -67,7 +67,8 @@ module.exports = {
             if (songQueue.getLoadingSongs())
                 return await interaction.editReply(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
 
-             session.SetInteraction(interaction)
+            songQueue.setForceStop(false)
+            session.SetInteraction(interaction)
 
             await session.PlayNextResource(interaction.options.getString('input'))
 
