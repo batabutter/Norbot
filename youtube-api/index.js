@@ -1,6 +1,7 @@
 require('dotenv').config({ path: __dirname + '/../.env' });
 const express = require('express')
 const axios = require('axios');
+const { MAX_VIDEOS_IN_QUEUE } = require('../commands/utils/songqueue');
 
 const app = express()
 const port = 3000
@@ -36,15 +37,25 @@ app.get("/playlist/items/:id", async (req, res) => {
 
     try {
         const { id } = req.params
-        const url = `${playlistUrl}/?key=${process.env.API_KEY}&part=contentDetails&playlistId=${id}&maxResults=30`
-        const response = await axios.get(url)
 
-        const videoUrls = response.data.items.map(item => {
-            const videoId = item.contentDetails.videoId
-            return `${watchUrl}${videoId}`
-        })
+        const allUrls = []
+        let pageToken = ""
+        do {
 
-        res.json(videoUrls)
+            const url = `${playlistUrl}/?key=${process.env.API_KEY}&part=contentDetails&playlistId=${id}&maxResults=50&pageToken=${pageToken}`
+            const response = await axios.get(url)
+
+            const videoUrls = response.data.items.map(item => {
+                const videoId = item.contentDetails.videoId
+                return `${watchUrl}${videoId}`
+            })
+
+            allUrls.push(...videoUrls)
+            pageToken = response.data.nextPageToken;
+
+        } while (pageToken && allUrls.length < MAX_VIDEOS_IN_QUEUE)
+
+        res.json(allUrls)
     } catch (error) {
         console.log(error.message)
     }

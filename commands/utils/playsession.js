@@ -103,6 +103,10 @@ class PlaySession {
 
   PlayNextResource = async (url) => {
     try {
+
+      if (this.songQueue.isTooFull())
+        return this.interaction.editReply("**❌ Queue is too full! Please remove or clear the queue to add more songs.**")
+
       const { retUrl, numUnavailableSongs, numSongs, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
       console.log("Url is now " + retUrl)
       console.log("Info is now ")
@@ -165,7 +169,7 @@ class PlaySession {
         const json = await res.json()
         
         if (!res.ok)
-          await this.interaction.editReply("**❌ Could not find a video with that url or title.**")
+          return this.interaction.editReply("**❌ Could not find a video with that url or title.**")
 
         retUrl = json[0]
         numSongs++;
@@ -190,7 +194,8 @@ class PlaySession {
           if (!this.songQueue.isPlaying())
             listItems.splice(index, 1);
 
-          for (const itemURL of listItems) {
+          for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
+            const itemURL = listItems[i]
             try {
               let info = await ytdl.getBasicInfo(itemURL)
               if (info.videoDetails.lengthSeconds < maxVideoLength)

@@ -1,4 +1,5 @@
 const { ButtonBuilder, ActionRow, ActionRowBuilder, EmbedBuilder, ButtonStyle } = require("discord.js")
+const MAX_VIDEOS_IN_QUEUE = 120
 
 class SongQueue {
     constructor() {
@@ -70,28 +71,30 @@ class SongQueue {
     }
 
     addSong = (url, playerName, songName, audioLength) => {
-        const newSong = {
-            url: url,
-            playerName: playerName,
-            name: songName,
-            length: audioLength,
-            position: this.getSize()
-        }
 
-        /*
-        console.log("Adding...")
-        console.log(newSong)
-        */
-        this.songQueue.push(newSong)
-        this.queueOutdated = true
+        if (this.songQueue.length >= MAX_VIDEOS_IN_QUEUE) {
+            console.log("Queue is too full")
+        } else {
+            const newSong = {
+                url: url,
+                playerName: playerName,
+                name: songName,
+                length: audioLength,
+                position: this.getSize()
+            }
+
+            
+            console.log("Adding...")
+            console.log(newSong)
+            
+            this.songQueue.push(newSong)
+            this.queueOutdated = true
+        }
     }
 
     removeSong = () => {
 
         console.log("Removing song... ")
-        if (this.loopQueue)
-                this.addSong(this.lastPlayedSong.url, this.lastPlayedSong.player, this.lastPlayedSong.name, this.lastPlayedSong.length)
-            
 
         let result = {}
 
@@ -111,6 +114,9 @@ class SongQueue {
             console.log("Removing >")
             console.log(result)
         }
+
+        if (this.loopQueue)
+            this.addSong(this.lastPlayedSong.url, this.lastPlayedSong.player, this.lastPlayedSong.name, this.lastPlayedSong.length)
 
         if (Object.keys(result).length > 0) {
             this.songQueue.shift()
@@ -163,6 +169,7 @@ class SongQueue {
             .setTitle(`Showing first ${this.numQueueItemsShow} songs out of ${queueSize} total... 🎶`)
             .setDescription(`\`${shortenedQueue.join('\n')}\``)
             .setColor(0x06402B)
+            .setFooter({ text: `Max videos allowed in queue: ${MAX_VIDEOS_IN_QUEUE}` });
 
         if (this.topOfQueue != 0)
             components.push(back)
@@ -178,8 +185,11 @@ class SongQueue {
     }
 
     Queue = () => this.songQueue
+
+    isTooFull = () => this.songQueue.length >= MAX_VIDEOS_IN_QUEUE
 }
 
 module.exports = {
-    SongQueue
+    SongQueue,
+    MAX_VIDEOS_IN_QUEUE
 };
