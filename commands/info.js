@@ -21,7 +21,7 @@ module.exports = {
 
         const song = await songQueue.getPlayingInfo()
 
-        if (!song || Object.keys(song).length === 0)
+        if (!songQueue.isPlaying() || !song || Object.keys(song).length === 0)
             return interaction.reply("**No song is currently playing. 🍃**")
 
         console.log(song)
