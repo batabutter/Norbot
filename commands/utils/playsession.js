@@ -25,6 +25,8 @@ class PlaySession {
     this.subscription = subscription
     this.interaction = interaction
     this.reponse = ""
+    this.start = 0
+    this.songLengthSeconds = 0
 
     player.on(AudioPlayerStatus.Idle, async () => {
       this.songQueue.isPlayingFlagToggle(false)
@@ -88,7 +90,7 @@ class PlaySession {
         return await this.interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
 
       /*
-        Format declarations:
+        Format declarations: 
       */
       const formattedHours = String(Math.round(lengthSeconds / 60))
       const formattedSeconds = String(Math.round((lengthSeconds % 60))).padStart(2, 0)
@@ -132,6 +134,8 @@ class PlaySession {
           this.player.play(resource);
           return resource
         })
+        this.startTime = Date.now() / 1000;
+        this.songLengthSeconds = info.videoDetails.lengthSeconds
         this.songQueue.setQueueOutdated(true)
         this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
         const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
@@ -247,6 +251,10 @@ class PlaySession {
   GetConnection = () => this.connection
 
   GetPlayer = () => this.player
+
+  GetCurrentTime = () => (Date.now() / 1000) - this.startTime
+
+  GetEndTime = () => this.songLengthSeconds
 
 }
 module.exports = {
