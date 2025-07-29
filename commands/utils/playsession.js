@@ -205,18 +205,11 @@ class PlaySession {
           if (!res.ok)
             return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
           listItems = json
-          console.log("Before >" +listItems.length)
           console.log(listItems)
           if (!this.songQueue.isPlaying()) {
             listItems.splice(index-1, 1);
             numSongs--
-            console.log("Removed")
           }
-
-          console.log("after >" +listItems.length)
-
-          console.log("Removing "+index)
-          console.log(listItems)
 
           for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
             const itemURL = listItems[i]
