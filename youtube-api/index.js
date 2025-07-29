@@ -29,7 +29,9 @@ app.get("/search/:searchQuery", async (req, res) => {
         res.send(videoUrls)
 
     } catch (error) {
-        console.log(error.message)
+        res.status(500).json({
+            error: "API Error"
+        })
     }
 })
 
@@ -57,7 +59,9 @@ app.get("/playlist/items/:id", async (req, res) => {
 
         res.json(allUrls)
     } catch (error) {
-        console.log(error.message)
+        res.status(500).json({
+            error: "API Error"
+        })
     }
 
 })

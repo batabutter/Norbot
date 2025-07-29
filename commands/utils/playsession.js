@@ -2,6 +2,7 @@ const { AudioPlayerStatus, VoiceConnectionStatus, createAudioResource } = requir
 const { SongQueue } = require("./songqueue")
 const path = require('path');
 const ytdl = require("@distube/ytdl-core");
+const { clearConnection } = require("./endConnection");
 const filePath = path.resolve(__dirname, '../audio.mp3');
 
 const baseUrl = "http://localhost:3000/search/"
@@ -34,7 +35,7 @@ class PlaySession {
         this.PlayNextResource(content.url)
 
         return await this.interaction.editReply(`Now Playing: ` +
-          `**\"${content.name}\"** ${content.length}\nin \`${this.interaction.member.voice.channel.name}\` 🔊`)
+          `**\"${content.name}\"** ${content.length}\nin \`${this.interaction.guild.members.me.voice.channel.name}\` 🔊`)
 
       } else {
 
@@ -48,6 +49,7 @@ class PlaySession {
 
     connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
       try {
+        console.log("Disconnecting...")
         this.endConnection()
         return this.interaction.editReply("**❌ Disconnected from VC**")
       } catch (error) {
@@ -57,8 +59,6 @@ class PlaySession {
 
     connection.on(VoiceConnectionStatus.Destroyed, async (oldState, newState) => {
       try {
-        this.endConnection()
-
         console.log("Connection destroyed.")
         return interaction.editReply("**❓ Something went wrong... Connection was destroyed.**")
       } catch (error) {
@@ -81,11 +81,11 @@ class PlaySession {
       let info = await ytdl.getBasicInfo(retUrl)
 
       if (!info)
-        return interaction.editReply("**❌ Video unavailable.**")
+        return await this.interaction.editReply("**❌ Video unavailable.**")
 
       const lengthSeconds = info.videoDetails.lengthSeconds
       if (lengthSeconds > maxVideoLength)
-        return interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
+        return await this.interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
 
       /*
         Format declarations:
@@ -98,6 +98,7 @@ class PlaySession {
 
     } catch (error) {
       console.log("Error in GetInfo > " + error.message)
+      return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
     }
   }
 
@@ -108,8 +109,9 @@ class PlaySession {
         return this.interaction.editReply("**❌ Queue is too full! Please remove or clear the queue to add more songs.**")
 
       const { retUrl, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
-      console.log("Url is now " + retUrl)
-      console.log("Info is now ")
+
+      if (!info)
+        throw new Error("Missing retURL, info, or audio length")
 
       if (this.songQueue.isPlaying()) {
         console.log("A song is playing...")
@@ -132,15 +134,20 @@ class PlaySession {
         })
         this.songQueue.setQueueOutdated(true)
         this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
+        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
         this.songQueue.isPlayingFlagToggle(true)
-        await this.AddPlaylist(retUrl, this.interaction.user.tag)
 
-        return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\`. 🔊`)
+        if (numSongs > 1)
+          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
+            `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
+            `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
+        else
+          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
       }
       const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
 
       return await this.interaction.editReply(`Queued: ` +
-        `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.member.voice.channel.name}\` 🔊 
+        `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\` 🔊 
           \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
         `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
 
@@ -150,19 +157,8 @@ class PlaySession {
   }
 
   endConnection = () => {
-
-    console.log("Destroying connection by disconnecting")
-    this.songQueue.clearQueue()
-    this.songQueue.setQueueOutdated(true)
-    this.songQueue.isPlayingFlagToggle(false)
-
-    if (this.subscription)
-      this.subscription.unsubscribe(this.player)
-
-    this.connection.destroy()
-
-    guildPlaySessions.delete(this.interaction.guild.id)
-
+    clearConnection(this.connection, this.player, this.interaction,
+      this.subscription, this.songQueue)
   }
 
   validateUrl = async (url) => {
@@ -179,10 +175,8 @@ class PlaySession {
           return this.interaction.editReply("**❌ Could not find a video with that url or title.**")
 
         retUrl = json[0]
-
       } catch (error) {
         console.log(error.message)
-        return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
       }
     }
 
@@ -211,8 +205,18 @@ class PlaySession {
           if (!res.ok)
             return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
           listItems = json
-          if (this.songQueue.isPlaying())
-            listItems.splice(index, 1);
+          console.log("Before >" +listItems.length)
+          console.log(listItems)
+          if (!this.songQueue.isPlaying()) {
+            listItems.splice(index-1, 1);
+            numSongs--
+            console.log("Removed")
+          }
+
+          console.log("after >" +listItems.length)
+
+          console.log("Removing "+index)
+          console.log(listItems)
 
           for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
             const itemURL = listItems[i]
@@ -238,11 +242,11 @@ class PlaySession {
       }
       console.log("song count = " + numSongs)
     } catch (error) {
-      console.log("Adding stopped > "+error.message)
+      console.log("Adding stopped > " + error.message)
     } finally {
       return { numUnavailableSongs, numSongs }
     }
-    
+
   }
 
   SetInteraction = (interaction) => { this.interaction = interaction }

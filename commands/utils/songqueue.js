@@ -1,5 +1,5 @@
 const { ButtonBuilder, ActionRow, ActionRowBuilder, EmbedBuilder, ButtonStyle } = require("discord.js")
-const MAX_VIDEOS_IN_QUEUE = 120
+const MAX_VIDEOS_IN_QUEUE = 20
 
 class SongQueue {
     constructor() {
@@ -164,7 +164,8 @@ class SongQueue {
             .setTitle(`Showing first ${this.numQueueItemsShow} songs out of ${queueSize} total... 🎶`)
             .setDescription(`\`${shortenedQueue.join('\n')}\``)
             .setColor(0x06402B)
-            .setFooter({ text: `Max videos allowed in queue: ${MAX_VIDEOS_IN_QUEUE}` });
+            .setFooter({ text: `Max videos allowed in queue: ${MAX_VIDEOS_IN_QUEUE}\n`+
+                        `Loop: ${this.loopSong ? `✅` : `❌`} LoopQueue: ${this.loopQueue ? `✅` : `❌`}` });
 
         if (this.topOfQueue != 0)
             components.push(back)

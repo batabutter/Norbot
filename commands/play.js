@@ -34,6 +34,7 @@ module.exports = {
             if (!session) {
 
                 console.log("In a new session")
+                console.log(guildPlaySessions)
 
                 const tempConnection = joinVoiceChannel({
                     channelId: interaction.member.voice.channel.id,
@@ -55,7 +56,11 @@ module.exports = {
                 )
 
                 guildPlaySessions.set(interaction.guild.id, session)
+
             }
+
+            console.log("Map of sessions > ")
+            console.log(guildPlaySessions)
 
             /**
              * Create Connection and player

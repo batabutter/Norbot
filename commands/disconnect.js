@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { getVoiceConnection } = require('@discordjs/voice');
 const { guildPlaySessions } = require('./utils/playsession');
+const { clearConnection } = require('./utils/endConnection');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,17 +14,9 @@ module.exports = {
         if (!session)
             return interaction.reply("**❌ No voice channel connected to...**")
 
-        const songQueue = session.GetQueue()
+        console.log("Valid here > "+guildPlaySessions)
 
-        const connection = getVoiceConnection(interaction.guild.id);
-        songQueue.clearQueue()
-        songQueue.setQueueOutdated(true)
-
-        connection.destroy();
-
-        await interaction.reply({
-            content: "**Disconnecting... ✅**",
-            fetchReply: true
-        })
+        clearConnection(session.GetConnection(), session.GetPlayer(), 
+            interaction, session.GetSubscription(), session.GetQueue())
     }
 }
