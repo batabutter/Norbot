@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { checkConnection } = require('./utils/checkvoiceconnection');
-const { guildPlaySessions } = require('./utils/playsession');
+const { guildPlaySessions } = require('./utils/sessionmap');
 const activeQueue = new Map()
 
 module.exports = {
@@ -16,7 +16,7 @@ module.exports = {
             const songQueue = session.GetQueue()
 
             if (songQueue.getLoadingSongs())
-                return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
+                return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to display the queue**`)
             
             songQueue.setQueueOutdated(false)
 

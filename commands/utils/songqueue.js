@@ -61,6 +61,7 @@ class SongQueue {
 
     setPlayingSong = (url, player, name, audioLength) => {
         console.log("Set playing song > ")
+        url = url.split("&")[0]
         this.lastPlayedSong = {
             url: url,
             player: player,

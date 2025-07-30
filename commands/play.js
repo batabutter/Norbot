@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { createAudioPlayer, joinVoiceChannel, NoSubscriberBehavior } = require('@discordjs/voice');
-const { PlaySession, guildPlaySessions } = require('./utils/playsession');
+const { PlaySession } = require('./utils/playsession');
+const { guildPlaySessions } = require('./utils/sessionmap');
 
 /*
 
@@ -24,7 +25,6 @@ module.exports = {
         }
         await interaction.deferReply();
         try {
-
             const botPermissions = interaction.member.voice.channel.permissionsFor(interaction.guild.members.me);
             let session = guildPlaySessions.get(interaction.guild.id)
 
@@ -58,9 +58,6 @@ module.exports = {
                 guildPlaySessions.set(interaction.guild.id, session)
 
             }
-
-            console.log("Map of sessions > ")
-            console.log(guildPlaySessions)
 
             /**
              * Create Connection and player

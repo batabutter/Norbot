@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { EmbedBuilder } = require('discord.js');
-const { guildPlaySessions } = require('./utils/playsession');
+const { guildPlaySessions } = require('./utils/sessionmap');
 
 // ||=====⚪---|| [02:15 / 05:20]
 const PROGRESS_BAR_SIZE = 20

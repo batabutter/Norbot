@@ -1,7 +1,8 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { getVoiceConnection } = require('@discordjs/voice');
-const { guildPlaySessions } = require('./utils/playsession');
+
 const { clearConnection } = require('./utils/endConnection');
+const { guildPlaySessions } = require('./utils/sessionmap');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,5 +19,7 @@ module.exports = {
 
         clearConnection(session.GetConnection(), session.GetPlayer(), 
             interaction, session.GetSubscription(), session.GetQueue())
+
+        return interaction.reply("**Disconnected. ✅**")
     }
 }

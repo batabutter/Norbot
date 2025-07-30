@@ -1,5 +1,5 @@
 const { getVoiceConnection } = require('@discordjs/voice');
-const { guildPlaySessions } = require('./playsession');
+const { guildPlaySessions } = require('./sessionmap');
 
 module.exports = {
     async clearConnection(connection, player, interaction, subscription, songQueue) {
@@ -14,7 +14,9 @@ module.exports = {
         if (subscription)
             subscription.unsubscribe(player)
 
-        connection.destroy()
+        if (connection?.state?.status !== 'destroyed')
+            connection.destroy();
+        
 
         if (guildPlaySessions && guildPlaySessions.get(interaction.guild.id)) {
             guildPlaySessions.delete(interaction.guild.id)

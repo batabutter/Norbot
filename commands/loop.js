@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { checkConnection } = require('./utils/checkvoiceconnection');
-const { guildPlaySessions } = require('./utils/playsession');
+const { guildPlaySessions } = require('./utils/sessionmap');
 
 module.exports = {
     data: new SlashCommandBuilder()

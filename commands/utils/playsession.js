@@ -9,8 +9,6 @@ const baseUrl = "http://localhost:3000/search/"
 const playlistURL = "http://localhost:3000/playlist/items/"
 const maxVideoLength = 7200
 
-const guildPlaySessions = new Map()
-
 class PlaySession {
   constructor(
     channelId,
@@ -53,7 +51,7 @@ class PlaySession {
       try {
         console.log("Disconnecting...")
         this.endConnection()
-        return this.interaction.editReply("**❌ Disconnected from VC**")
+        return await this.interaction.editReply("**❌ Disconnected from VC**")
       } catch (error) {
         console.log(error.message)
       }
@@ -62,7 +60,6 @@ class PlaySession {
     connection.on(VoiceConnectionStatus.Destroyed, async (oldState, newState) => {
       try {
         console.log("Connection destroyed.")
-        return interaction.editReply("**❓ Something went wrong... Connection was destroyed.**")
       } catch (error) {
         console.log(error.message)
       }
@@ -115,6 +112,9 @@ class PlaySession {
       if (!info)
         throw new Error("Missing retURL, info, or audio length")
 
+      this.songQueue.setForceStop(false)
+
+
       if (this.songQueue.isPlaying()) {
         console.log("A song is playing...")
 
@@ -128,21 +128,24 @@ class PlaySession {
           .pipe(require("fs")
             .createWriteStream(filePath));
 
-        await stream.on("finish", () => {
-          console.log("finished downloading")
-          const resource = createAudioResource(filePath);
-          this.player.play(resource);
-          return resource
+
+        await new Promise((resolve) => {
+          stream.on("finish", () => {
+            console.log("finished downloading")
+            const resource = createAudioResource(filePath);
+            this.player.play(resource);
+            resolve(resource)
+          })
         })
         this.startTime = Date.now() / 1000;
         this.songLengthSeconds = info.videoDetails.lengthSeconds
         this.songQueue.setQueueOutdated(true)
-        this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
         const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
+        this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
         this.songQueue.isPlayingFlagToggle(true)
 
         if (numSongs > 1)
-          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
+          return await this.interaction.followUp(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
             `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
             `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
         else
@@ -150,7 +153,7 @@ class PlaySession {
       }
       const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
 
-      return await this.interaction.editReply(`Queued: ` +
+      return await this.interaction.followUp(`Queued: ` +
         `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\` 🔊 
           \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
         `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
@@ -203,44 +206,39 @@ class PlaySession {
         this.songQueue.setLoadingSongs(true)
         console.log("Adding playlist > ")
         const index = parsedURL.searchParams.get("index")
-        try {
-          const res = await fetch(`${playlistURL}${listId}`)
-          const json = await res.json()
-          if (!res.ok)
-            return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
-          listItems = json
-          console.log(listItems)
-          if (!this.songQueue.isPlaying()) {
-            listItems.splice(index-1, 1);
-            numSongs--
-          }
-
-          for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
-            const itemURL = listItems[i]
-            console.log("Trying with > " + itemURL)
-            let info
-            try {
-              info = await ytdl.getBasicInfo(itemURL)
-            } catch (error) {
-              console.log("Video unavailable > " + error.message)
-              numUnavailableSongs++
-            }
-            if (info && info.videoDetails.lengthSeconds < maxVideoLength) {
-              await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
-              numSongs++
-            }
-
-          }
-        } catch (error) {
-          console.log(error.message)
-          return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
+        const res = await fetch(`${playlistURL}${listId}`)
+        const json = await res.json()
+        if (!res.ok)
+          return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
+        listItems = json
+        console.log(listItems)
+        if (!this.songQueue.isPlaying()) {
+          listItems.splice(index - 1, 1);
+          numSongs--
         }
-        this.songQueue.setLoadingSongs(false)
+
+        for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
+          const itemURL = listItems[i]
+          console.log("Trying with > " + itemURL)
+          let info
+          try {
+            info = await ytdl.getBasicInfo(itemURL)
+          } catch (error) {
+            console.log("Video unavailable > " + error.message)
+            numUnavailableSongs++
+          }
+          if (info && info.videoDetails.lengthSeconds < maxVideoLength) {
+            await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
+            numSongs++
+          }
+
+        }
       }
       console.log("song count = " + numSongs)
     } catch (error) {
       console.log("Adding stopped > " + error.message)
     } finally {
+      this.songQueue.setLoadingSongs(false)
       return { numUnavailableSongs, numSongs }
     }
 
@@ -258,6 +256,5 @@ class PlaySession {
 
 }
 module.exports = {
-  PlaySession,
-  guildPlaySessions
+  PlaySession
 }

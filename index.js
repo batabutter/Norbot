@@ -12,7 +12,8 @@ const fs = require('fs')
 const path = require('path')
 const { token } = require('./config.json');
 const { activeQueue } = require('./commands/queue');
-const { guildPlaySessions } = require('./commands/utils/playsession');
+const { guildPlaySessions } = require('./commands/utils/sessionmap.js')
+
 require('dotenv').config()
 
 const deployCommands = async () => {

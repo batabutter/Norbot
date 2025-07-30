@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { checkConnection } = require('./utils/checkvoiceconnection');
-const { guildPlaySessions } = require('./utils/playsession');
+const { guildPlaySessions } = require('./utils/sessionmap');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -11,7 +11,7 @@ module.exports = {
         const session = guildPlaySessions.get(interaction.guild.id)
 
         const validConnection = await checkConnection(interaction, session)
-        
+
         if (validConnection) {
             const songQueue = session.GetQueue()
             if (songQueue.isEmpty())

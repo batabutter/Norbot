@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js')
 const { getVoiceConnection, AudioPlayerStatus } = require('@discordjs/voice');
 const { checkConnection } = require('./utils/checkvoiceconnection');
-const { guildPlaySessions } = require('./utils/playsession');
+const { guildPlaySessions } = require('./utils/sessionmap');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -31,7 +31,7 @@ module.exports = {
             }
 
             player.stop()
-            await interaction.reply("** Song skipped! **⏭️")
+            return await interaction.reply("** Song skipped! **⏭️")
         }
     }
 }
