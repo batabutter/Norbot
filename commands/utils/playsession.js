@@ -169,16 +169,15 @@ class PlaySession {
   }
 
   endConnection = async () => {
+    clearConnection(this.connection, this.player, this.interaction,
+      this.subscription, this.songQueue)
     try {
-      await new Promise(res => setTimeout(res, 1000));
+      await new Promise(res => setTimeout(res, 5000));
       await access(this.filePath)
       await unlink(this.filePath)
     } catch (error) {
       console.log("Error removing files > " + error.message)
     }
-
-    clearConnection(this.connection, this.player, this.interaction,
-      this.subscription, this.songQueue)
   }
 
   validateUrl = async (url) => {
