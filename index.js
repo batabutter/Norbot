@@ -9,10 +9,12 @@ const {
     PresenceUpdateStatus,
     ActivityType } = require('discord.js');
 const fs = require('fs')
+const fsPromise = require('fs/promises')
 const path = require('path')
 const { token } = require('./config.json');
 const { activeQueue } = require('./commands/queue');
 const { guildPlaySessions } = require('./commands/utils/sessionmap.js')
+const songPath = path.resolve(__dirname, `commands/utils/songs/`)
 
 require('dotenv').config()
 
@@ -173,5 +175,35 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 })
 
+fileCleanUp = async () => {
+    console.log("Clearings songs...")
+    try {
+        const files = await fsPromise.readdir(songPath)
+    
+        for (const file of files) {
+            try {
+                await fsPromise.unlink(path.join(songPath, file))
+            } catch (error) {
+                console.log("Error deleting file > "+error.message)
+            }
+        }
+
+
+    } catch (error) {
+        console.log("Error clearning  up > "+error.message)   
+    }
+
+    process.exit(0)
+}
+
+process.on('SIGINT', async function () {
+    console.log('SIGINT fired')
+    fileCleanUp()
+})
+
+process.on('SIGTERM', async function () {
+    console.log('SIGTERM fired')
+    fileCleanUp()
+})
 
 client.login(token);

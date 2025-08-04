@@ -26,6 +26,10 @@ class SongQueue {
         this.topOfQueue = 0
     }
 
+    setLoops = (val) => {
+        this.loopSong = val 
+        this.loopQueue = val}
+
     getDisplayQueueSize = (queue) => this.displayQueue.length
 
     getTopOfQueue = () => this.topOfQueue

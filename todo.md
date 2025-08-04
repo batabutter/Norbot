@@ -25,10 +25,10 @@
 ~~- Add further checks to make sure you're in the voice channel~~
 ~~- Move the voice channel checks into a different module~~
 ~~- Add message saying how many videos were unavailable in a playlist~~
-- Make all lines under 80 characters
 ~~- Handle if it cannot join a voice channel~~
 ~~- Make bot work while in different servers~~
 ~~- Maybe make it reply to the message of what it is currenly playing~~
-- Make all the messages embeds
 ~~- Add limit to queue size~~
 ~~- Get show time in song in info~~
+- Make a lyrics command (maybe)
+- Make all lines under 80 characters (style)

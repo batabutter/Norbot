@@ -27,14 +27,14 @@ module.exports = {
         try {
             const botPermissions = interaction.member.voice.channel.permissionsFor(interaction.guild.members.me);
             let session = guildPlaySessions.get(interaction.guild.id)
+            console.log("ID is currently > "+interaction.guild.id)
 
             if (!botPermissions || !botPermissions.has(['Connect', 'Speak']))
                 return interaction.editReply(`❗ **Something went wrong when joining... Please make sure Norbot has the required permissions to join.**`)
 
-            if (!session) {
+            if (!session || session.channelId !== interaction.member.voice.channel.id) {
 
                 console.log("In a new session")
-                console.log(guildPlaySessions)
 
                 const tempConnection = joinVoiceChannel({
                     channelId: interaction.member.voice.channel.id,
@@ -63,6 +63,8 @@ module.exports = {
              * Create Connection and player
              */
             const songQueue = session.GetQueue()
+            console.log("Current session > "+session)
+            console.log("Numer of sessions > "+guildPlaySessions.size)
             /**
              * Start Playing logic > 
              */

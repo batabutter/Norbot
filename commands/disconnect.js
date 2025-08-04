@@ -16,6 +16,7 @@ module.exports = {
             return interaction.reply("**❌ No voice channel connected to...**")
 
         console.log("Valid here > "+guildPlaySessions)
+        session.GetQueue().setLoops()
 
         clearConnection(session.GetConnection(), session.GetPlayer(), 
             interaction, session.GetSubscription(), session.GetQueue())

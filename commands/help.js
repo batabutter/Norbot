@@ -10,7 +10,8 @@ module.exports = {
         const help = new EmbedBuilder()
             .setTitle(`List of commands for **Norbot:**`)
             .setDescription(`
-                \`/help\` : Shows the list of available commands\n\n`+
+                \`/help\` Shows the list of available commands\n\n`+
+                `\`/info\` Displays information for the current song\n`+
                 `\`/play [input]\` Play an MP3 by searching YouTube with either a URL or a query\n`+
                 `\`/skip\` Skips the current track\n`+
                 `\`/loop\` Loops the current track\n\n`+

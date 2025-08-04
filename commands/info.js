@@ -29,17 +29,17 @@ module.exports = {
         const lengthSeconds = session.GetCurrentTime()
         const endTime = session.GetEndTime()
 
-        const formattedHours = String(Math.round(lengthSeconds / 60))
+        const formattedMinutes = String(Math.floor(lengthSeconds / 60))
         const formattedSeconds = String(Math.round((lengthSeconds % 60))).padStart(2, 0)
 
-        const formattedHoursEnd = String(Math.round(endTime / 60))
+        const formattedMinutesEnd = String(Math.floor(endTime / 60))
         const formattedSecondsEnd = String(Math.round((endTime % 60))).padStart(2, 0)
 
         const help = new EmbedBuilder()
             .setTitle(`**💽 Now playing:**`)
             .setDescription(`**"${song.name}"**\n\n` +
                 `${progressBar(lengthSeconds, endTime, PROGRESS_BAR_SIZE)}\n`+
-                `[${formattedHours}:${formattedSeconds}/${formattedHoursEnd}:${formattedSecondsEnd}]\n\n`+
+                `[${formattedMinutes}:${formattedSeconds}/${formattedMinutesEnd}:${formattedSecondsEnd}]\n\n`+
                 `\`Played by: ${song.player}\``)
             .setColor(0x06402B);
 

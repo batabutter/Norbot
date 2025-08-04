@@ -4,7 +4,7 @@ const { guildPlaySessions } = require('./sessionmap');
 module.exports = {
     async clearConnection(connection, player, interaction, subscription, songQueue) {
 
-        console.log("Trying....")
+        console.log("Clearing the connection...")
         songQueue.clearQueue()
         songQueue.setQueueOutdated(true)
         songQueue.isPlayingFlagToggle(false)

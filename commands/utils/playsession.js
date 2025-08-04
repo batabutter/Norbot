@@ -3,11 +3,13 @@ const { SongQueue } = require("./songqueue")
 const path = require('path');
 const ytdl = require("@distube/ytdl-core");
 const { clearConnection } = require("./endConnection");
-const filePath = path.resolve(__dirname, '../audio.mp3');
+const { unlink, access } = require('fs/promises');
 
 const baseUrl = "http://localhost:3000/search/"
 const playlistURL = "http://localhost:3000/playlist/items/"
 const maxVideoLength = 7200
+
+const NEXT_SONG_WAIT_TIME = 1000
 
 class PlaySession {
   constructor(
@@ -25,8 +27,11 @@ class PlaySession {
     this.reponse = ""
     this.start = 0
     this.songLengthSeconds = 0
+    this.filePath = path.resolve(__dirname, `songs/${interaction.guild.id}.mp3`)
 
     player.on(AudioPlayerStatus.Idle, async () => {
+      await new Promise(res => setTimeout(res, NEXT_SONG_WAIT_TIME));
+
       this.songQueue.isPlayingFlagToggle(false)
       console.log("Free to play a song")
       if (!this.songQueue.isEmpty() || this.songQueue.isLoop() || this.songQueue.isLoopQueue()) {
@@ -34,11 +39,8 @@ class PlaySession {
 
         this.PlayNextResource(content.url)
 
-        return await this.interaction.editReply(`Now Playing: ` +
-          `**\"${content.name}\"** ${content.length}\nin \`${this.interaction.guild.members.me.voice.channel.name}\` 🔊`)
-
       } else {
-
+        await this.endConnection()
         return this.interaction.channel.send(`** Player stopped. ** ⏹️`);
       }
     })
@@ -50,7 +52,7 @@ class PlaySession {
     connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
       try {
         console.log("Disconnecting...")
-        this.endConnection()
+        await this.endConnection()
         return await this.interaction.editReply("**❌ Disconnected from VC**")
       } catch (error) {
         console.log(error.message)
@@ -60,6 +62,7 @@ class PlaySession {
     connection.on(VoiceConnectionStatus.Destroyed, async (oldState, newState) => {
       try {
         console.log("Connection destroyed.")
+        await this.endConnection()
       } catch (error) {
         console.log(error.message)
       }
@@ -89,9 +92,9 @@ class PlaySession {
       /*
         Format declarations: 
       */
-      const formattedHours = String(Math.round(lengthSeconds / 60))
+      const formattedMins = String(Math.floor(lengthSeconds / 60))
       const formattedSeconds = String(Math.round((lengthSeconds % 60))).padStart(2, 0)
-      const audioLength = `[${formattedHours}:${formattedSeconds}]`
+      const audioLength = `[${formattedMins}:${formattedSeconds}]`
 
       return { retUrl, info, audioLength }
 
@@ -126,13 +129,13 @@ class PlaySession {
       } else {
         const stream = await ytdl(retUrl, { filter: 'audioonly' })
           .pipe(require("fs")
-            .createWriteStream(filePath));
+            .createWriteStream(this.filePath));
 
 
         await new Promise((resolve) => {
           stream.on("finish", () => {
             console.log("finished downloading")
-            const resource = createAudioResource(filePath);
+            const resource = createAudioResource(this.filePath);
             this.player.play(resource);
             resolve(resource)
           })
@@ -147,23 +150,33 @@ class PlaySession {
         if (numSongs > 1)
           return await this.interaction.followUp(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
             `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
-            `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
+            `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
+            `-# Size of queue: ${this.songQueue.getSize()}`)
         else
-          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
+          return await this.interaction.followUp(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
       }
       const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
 
       return await this.interaction.followUp(`Queued: ` +
         `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\` 🔊 
           \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
-        `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}`)
+        `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
+        `-# Size of queue: ${this.songQueue.getSize()}`)
 
     } catch (error) {
       console.log(error.message)
     }
   }
 
-  endConnection = () => {
+  endConnection = async () => {
+    try {
+      await new Promise(res => setTimeout(res, 1000));
+      await access(this.filePath)
+      await unlink(this.filePath)
+    } catch (error) {
+      console.log("Error removing files > " + error.message)
+    }
+
     clearConnection(this.connection, this.player, this.interaction,
       this.subscription, this.songQueue)
   }
@@ -212,10 +225,13 @@ class PlaySession {
           return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
         listItems = json
         console.log(listItems)
-        if (!this.songQueue.isPlaying()) {
+
+        if (index != null)
           listItems.splice(index - 1, 1);
-          numSongs--
-        }
+        else
+          listItems.splice(0, 1);
+        numSongs--
+
 
         for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
           const itemURL = listItems[i]
