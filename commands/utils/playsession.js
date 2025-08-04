@@ -40,9 +40,10 @@ class PlaySession {
         this.PlayNextResource(content.url)
 
       } else {
+        await this.interaction.channel.send(`** Player stopped. ** ⏹️`);
         await this.endConnection()
-        return this.interaction.channel.send(`** Player stopped. ** ⏹️`);
       }
+      
     })
 
     connection.on('stateChange', (oldState, newState) => {
@@ -148,12 +149,12 @@ class PlaySession {
         this.songQueue.isPlayingFlagToggle(true)
 
         if (numSongs > 1)
-          return await this.interaction.followUp(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
+          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
             `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
             `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
             `-# Size of queue: ${this.songQueue.getSize()}`)
         else
-          return await this.interaction.followUp(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
+          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
       }
       const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
 
@@ -169,10 +170,10 @@ class PlaySession {
   }
 
   endConnection = async () => {
-    clearConnection(this.connection, this.player, this.interaction,
+    await this.player.stop()
+    await clearConnection(this.connection, this.player, this.interaction,
       this.subscription, this.songQueue)
     try {
-      await new Promise(res => setTimeout(res, 5000));
       await access(this.filePath)
       await unlink(this.filePath)
     } catch (error) {
