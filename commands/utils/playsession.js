@@ -2,7 +2,7 @@ const { AudioPlayerStatus, VoiceConnectionStatus, createAudioResource } = requir
 const { SongQueue } = require("./songqueue")
 const path = require('path');
 const ytdl = require("@distube/ytdl-core");
-const { clearConnection } = require("./endConnection");
+const { clearConnection } = require("./EndConnection");
 const { unlink, access } = require('fs/promises');
 
 const baseUrl = "http://localhost:3000/search/"
@@ -40,7 +40,7 @@ class PlaySession {
 
       } else {
         await this.interaction.channel.send(`** Player stopped. ** ⏹️`);
-        await this.endConnection()
+        await this.EndConnection()
       }
       
     })
@@ -52,7 +52,7 @@ class PlaySession {
     connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
       try {
         console.log("Disconnecting...")
-        await this.endConnection()
+        await this.EndConnection()
         return await this.interaction.editReply("**❌ Disconnected from VC**")
       } catch (error) {
         console.log(error.message)
@@ -62,7 +62,7 @@ class PlaySession {
     connection.on(VoiceConnectionStatus.Destroyed, async (oldState, newState) => {
       try {
         console.log("Connection destroyed.")
-        await this.endConnection()
+        await this.EndConnection()
       } catch (error) {
         console.log(error.message)
       }
@@ -79,15 +79,15 @@ class PlaySession {
     try {
       console.log("Entering video info")
 
-      const { retUrl } = await this.validateUrl(url, this.songQueue)
+      const { retUrl } = await this.ValidateUrl(url, this.songQueue)
       let info = await ytdl.getBasicInfo(retUrl)
 
       if (!info)
-        return await this.interaction.editReply("**❌ Video unavailable.**")
+        throw new Error("**❌ Video unavailable.**")
 
       const lengthSeconds = info.videoDetails.lengthSeconds
       if (lengthSeconds > maxVideoLength)
-        return await this.interaction.editReply("**❌ This video is too long! I can only play videos under 2 hours in length.**")
+        throw new Error("**❌ This video is too long! I can only play videos under 2 hours in length.**")
 
       /*
         Format declarations: 
@@ -99,8 +99,8 @@ class PlaySession {
       return { retUrl, info, audioLength }
 
     } catch (error) {
-      console.log("Error in GetInfo > " + error.message)
-      return this.interaction.editReply("**❌ Invalid url or query. Please make sure to check your input then try again.**")
+      console.error("Error in GetInfo > " + error.message)
+      throw new Error("**❌ Invalid url or query. Please make sure to check your input then try again.**")
     }
   }
 
@@ -122,7 +122,7 @@ class PlaySession {
         console.log("A song is playing...")
 
         if (this.songQueue.getLoadingSongs())
-          return await this.interaction.editReply(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
+          throw new Error(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
 
         this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
 
@@ -164,11 +164,11 @@ class PlaySession {
         `-# Size of queue: ${this.songQueue.getSize()}`)
 
     } catch (error) {
-      return await this.interaction.reply(`**❌ Error ${error.message}**`)
+      throw new Error(error.message)
     }
   }
 
-  endConnection = async () => {
+  EndConnection = async () => {
     await this.player.stop()
     await clearConnection(this.connection, this.player, this.interaction,
       this.subscription, this.songQueue)
@@ -179,7 +179,7 @@ class PlaySession {
     }
   }
 
-  validateUrl = async (url) => {
+  ValidateUrl = async (url) => {
     let retUrl = url
     let query = false
 
@@ -190,12 +190,12 @@ class PlaySession {
         const json = await res.json()
 
         if (!res.ok)
-          return this.interaction.editReply("**❌ Could not find a video with that url or title.**")
+          throw new Error("**❌ Could not find a video with that url or title.**")
 
         retUrl = json[0]
       } catch (error) {
-        this.endConnection()
-        return this.interaction.editReply("**❌ FATAL ERROR ❌**")
+        this.EndConnection()
+        throw new Error("**❌ FATAL ERROR ❌**")
       }
     }
 

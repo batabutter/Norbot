@@ -74,7 +74,7 @@ class SongQueue {
         }
         console.log("Playing > ")
         console.log(this.lastPlayedSong)
-        console.log("end  ")
+        console.log("end of queue")
     }
 
     addSong = (url, playerName, songName, audioLength) => {
