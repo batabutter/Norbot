@@ -2,7 +2,7 @@ const { AudioPlayerStatus, VoiceConnectionStatus, createAudioResource } = requir
 const { SongQueue } = require("./songqueue")
 const path = require('path');
 const ytdl = require("@distube/ytdl-core");
-const { clearConnection } = require("./EndConnection");
+const { clearConnection } = require("./endConnection");
 const { unlink, access } = require('fs/promises');
 
 const baseUrl = "http://localhost:3000/search/"
