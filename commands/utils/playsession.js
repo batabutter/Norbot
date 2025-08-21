@@ -36,7 +36,6 @@ class PlaySession {
       console.log("Free to play a song")
       if (!this.songQueue.isEmpty() || this.songQueue.isLoop() || this.songQueue.isLoopQueue()) {
         const content = this.songQueue.isLoop() ? this.songQueue.getPlayingInfo() : this.songQueue.removeSong();
-
         this.PlayNextResource(content.url)
 
       } else {
@@ -165,7 +164,7 @@ class PlaySession {
         `-# Size of queue: ${this.songQueue.getSize()}`)
 
     } catch (error) {
-      console.log(error.message)
+      return await this.interaction.reply(`**❌ Error ${error.message}**`)
     }
   }
 
@@ -174,7 +173,6 @@ class PlaySession {
     await clearConnection(this.connection, this.player, this.interaction,
       this.subscription, this.songQueue)
     try {
-      await access(this.filePath)
       await unlink(this.filePath)
     } catch (error) {
       console.log("Error removing files > " + error.message)
@@ -196,12 +194,12 @@ class PlaySession {
 
         retUrl = json[0]
       } catch (error) {
-        console.log(error.message)
+        this.endConnection()
+        return this.interaction.editReply("**❌ FATAL ERROR ❌**")
       }
     }
 
     return { retUrl }
-
   }
 
   AddPlaylist = async (url, playerName) => {
