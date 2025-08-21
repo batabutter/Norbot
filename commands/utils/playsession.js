@@ -42,7 +42,7 @@ class PlaySession {
         await this.interaction.channel.send(`** Player stopped. ** ⏹️`);
         await this.EndConnection()
       }
-      
+
     })
 
     connection.on('stateChange', (oldState, newState) => {
@@ -147,126 +147,140 @@ class PlaySession {
         this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
         this.songQueue.isPlayingFlagToggle(true)
 
+
         if (numSongs > 1)
-          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
-            `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
-            `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
-            `-# Size of queue: ${this.songQueue.getSize()}`)
-        else
-          return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
-      }
-      const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
-
-      return await this.interaction.followUp(`Queued: ` +
-        `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\` 🔊 
-          \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
-        `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
-        `-# Size of queue: ${this.songQueue.getSize()}`)
-
-    } catch (error) {
-      throw new Error(error.message)
-    }
-  }
-
-  EndConnection = async () => {
-    await this.player.stop()
-    await clearConnection(this.connection, this.player, this.interaction,
-      this.subscription, this.songQueue)
-    try {
-      await unlink(this.filePath)
-    } catch (error) {
-      console.log("Error removing files > " + error.message)
-    }
-  }
-
-  ValidateUrl = async (url) => {
-    let retUrl = url
-    let query = false
-
-    if (!ytdl.validateURL(url)) {
-      try {
-        query = true
-        const res = await fetch(`${baseUrl}${url}`)
-        const json = await res.json()
-
-        if (!res.ok)
-          throw new Error("**❌ Could not find a video with that url or title.**")
-
-        retUrl = json[0]
-      } catch (error) {
-        this.EndConnection()
-        throw new Error("**❌ FATAL ERROR ❌**")
-      }
-    }
-
-    return { retUrl }
-  }
-
-  AddPlaylist = async (url, playerName) => {
-
-    let numUnavailableSongs = 0
-    let numSongs = 1
-
-    try {
-
-      const parsedURL = new URL(url)
-      const listId = parsedURL.searchParams.get("list")
-      let listItems = []
-      let retUrl = url
-      if (listId) {
-        this.songQueue.setLoadingSongs(true)
-        console.log("Adding playlist > ")
-        const index = parsedURL.searchParams.get("index")
-        const res = await fetch(`${playlistURL}${listId}`)
-        const json = await res.json()
-        if (!res.ok)
-          return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
-        listItems = json
-        console.log(listItems)
-
-        if (index != null)
-          listItems.splice(index - 1, 1);
-        else
-          listItems.splice(0, 1);
-        numSongs--
-
-
-        for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
-          const itemURL = listItems[i]
-          console.log("Trying with > " + itemURL)
-          let info
           try {
-            info = await ytdl.getBasicInfo(itemURL)
+            return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
+              `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
+              `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
+              `-# Size of queue: ${this.songQueue.getSize()}`)
           } catch (error) {
-            console.log("Video unavailable > " + error.message)
-            numUnavailableSongs++
+            console.log(`Can't edit the reply: ${error.message}`)
+            return await this.interaction.channel.send(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊` +
+              `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
+              `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
+              `-# Size of queue: ${this.songQueue.getSize()}`)
           }
-          if (info && info.videoDetails.lengthSeconds < maxVideoLength) {
-            await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
-            numSongs++
+        else
+          try {
+            return await this.interaction.editReply(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
+          } catch (error) {
+            console.log(`Can't edit the reply: ${error.message}`)
+            return await this.interaction.channel.send(`Now playing: **\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`)
           }
-
-        }
       }
-      console.log("song count = " + numSongs)
-    } catch (error) {
-      console.log("Adding stopped > " + error.message)
-    } finally {
-      this.songQueue.setLoadingSongs(false)
-      return { numUnavailableSongs, numSongs }
-    }
+const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
 
+return await this.interaction.followUp(`Queued: ` +
+  `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\` 🔊 
+          \n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
+  `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n` +
+  `-# Size of queue: ${this.songQueue.getSize()}`)
+
+    } catch (error) {
+  throw new Error(error.message)
+}
   }
 
-  SetInteraction = (interaction) => { this.interaction = interaction }
+EndConnection = async () => {
+  await this.player.stop()
+  await clearConnection(this.connection, this.player, this.interaction,
+    this.subscription, this.songQueue)
+  try {
+    await unlink(this.filePath)
+  } catch (error) {
+    console.log("Error removing files > " + error.message)
+  }
+}
 
-  GetConnection = () => this.connection
+ValidateUrl = async (url) => {
+  let retUrl = url
+  let query = false
 
-  GetPlayer = () => this.player
+  if (!ytdl.validateURL(url)) {
+    try {
+      query = true
+      const res = await fetch(`${baseUrl}${url}`)
+      const json = await res.json()
 
-  GetCurrentTime = () => (Date.now() / 1000) - this.startTime
+      if (!res.ok) {
+        return await this.interaction.editReply("**❌ Could not find a video with that url or title.**")
+      }
 
-  GetEndTime = () => this.songLengthSeconds
+      retUrl = json[0]
+    } catch (error) {
+      throw new Error(`**❌ FATAL ERROR: ${error.message}❌**`)
+    }
+  }
+
+  return { retUrl }
+}
+
+AddPlaylist = async (url, playerName) => {
+
+  let numUnavailableSongs = 0
+  let numSongs = 1
+
+  try {
+
+    const parsedURL = new URL(url)
+    const listId = parsedURL.searchParams.get("list")
+    let listItems = []
+    let retUrl = url
+    if (listId) {
+      this.songQueue.setLoadingSongs(true)
+      console.log("Adding playlist > ")
+      const index = parsedURL.searchParams.get("index")
+      const res = await fetch(`${playlistURL}${listId}`)
+      const json = await res.json()
+      if (!res.ok)
+        return this.interaction.editReply("**❌ Error obtaining videos in the playlist**")
+      listItems = json
+      console.log(listItems)
+
+      if (index != null)
+        listItems.splice(index - 1, 1);
+      else
+        listItems.splice(0, 1);
+      numSongs--
+
+
+      for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
+        const itemURL = listItems[i]
+        console.log("Trying with > " + itemURL)
+        let info
+        try {
+          info = await ytdl.getBasicInfo(itemURL)
+        } catch (error) {
+          console.log("Video unavailable > " + error.message)
+          numUnavailableSongs++
+        }
+        if (info && info.videoDetails.lengthSeconds < maxVideoLength) {
+          await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
+          numSongs++
+        }
+
+      }
+    }
+    console.log("song count = " + numSongs)
+  } catch (error) {
+    console.log("Adding stopped > " + error.message)
+  } finally {
+    this.songQueue.setLoadingSongs(false)
+    return { numUnavailableSongs, numSongs }
+  }
+
+}
+
+SetInteraction = (interaction) => { this.interaction = interaction }
+
+GetConnection = () => this.connection
+
+GetPlayer = () => this.player
+
+GetCurrentTime = () => (Date.now() / 1000) - this.startTime
+
+GetEndTime = () => this.songLengthSeconds
 
 }
 module.exports = {
