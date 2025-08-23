@@ -77,7 +77,7 @@ module.exports = {
             await session.PlayNextResource(interaction.options.getString('input'))
 
         } catch (error) {
-            await interaction.editReply(error.message)
+            await interaction.editReply(`**❗Something went wrong.. ${error.message}**`)
         }
 
     }
