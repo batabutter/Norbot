@@ -8,9 +8,9 @@ const { unlink, access } = require('fs/promises');
 const baseUrl = "http://localhost:3000/search/"
 const playlistURL = "http://localhost:3000/playlist/items/"
 const maxVideoLength = 7200
-const maxIdleTimeMS = 1000
+const maxIdleTimeMS = 60000
 
-const NEXT_SONG_WAIT_TIME = 60000
+const NEXT_SONG_WAIT_TIME = 1000
 
 class PlaySession {
   constructor(
@@ -150,7 +150,7 @@ class PlaySession {
             resolve(resource)
           })
         })
-
+        
         this.startTime = Date.now() / 1000;
         this.songLengthSeconds = info.videoDetails.lengthSeconds
         this.songQueue.setQueueOutdated(true)

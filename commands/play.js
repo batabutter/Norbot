@@ -69,7 +69,7 @@ module.exports = {
              * Start Playing logic > 
              */
             if (songQueue.getLoadingSongs())
-                throw new Error(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
+                throw new Error(`❌ Please wait until all the songs have been loaded into the queue to queue a new song.`)
 
             songQueue.setForceStop(false)
             session.SetInteraction(interaction)
@@ -77,7 +77,7 @@ module.exports = {
             await session.PlayNextResource(interaction.options.getString('input'))
 
         } catch (error) {
-            await interaction.editReply(`**❗Something went wrong.. ${error.message}**`)
+            await interaction.editReply(`**❗Something went wrong... ${error.message}**`)
         }
 
     }
