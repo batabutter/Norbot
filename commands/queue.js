@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js')
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js')
 const { checkConnection } = require('./utils/checkvoiceconnection');
 const { guildPlaySessions } = require('./utils/sessionmap');
 const activeQueue = new Map()
@@ -16,12 +16,17 @@ module.exports = {
             const songQueue = session.GetQueue()
 
             if (songQueue.getLoadingSongs())
-                return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to display the queue.**`)
+                return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to display the queue**`)
             
             songQueue.setQueueOutdated(false)
 
             if (songQueue.isEmpty())
-                return interaction.reply("**Queue is empty. 🍃**")
+                return await interaction.reply({
+                    embeds: [new EmbedBuilder()
+                        .setTitle(`**Queue is empty 🍃**`)
+                        .setColor(0x06402B)
+                        .setFooter({ text: `Loop: ${this.loopSong ? `✅` : `❌`} LoopQueue: ${this.loopQueue ? `✅` : `❌`}` })]
+                });
 
             songQueue.setDisplayQueue([...songQueue.Queue()])
 
