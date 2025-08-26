@@ -16,7 +16,7 @@ module.exports = {
             const songQueue = session.GetQueue()
 
             if (songQueue.getLoadingSongs())
-                return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to display the queue**`)
+                return await interaction.reply(`**❌ Please wait until all the songs have been loaded into the queue to display the queue.**`)
             
             songQueue.setQueueOutdated(false)
 

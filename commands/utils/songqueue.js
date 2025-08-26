@@ -1,5 +1,5 @@
 const { ButtonBuilder, ActionRow, ActionRowBuilder, EmbedBuilder, ButtonStyle } = require("discord.js")
-const MAX_VIDEOS_IN_QUEUE = 20
+const MAX_VIDEOS_IN_QUEUE = 100
 
 class SongQueue {
     constructor() {
