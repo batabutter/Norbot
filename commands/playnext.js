@@ -1,15 +1,10 @@
 const { SlashCommandBuilder } = require('discord.js')
-const { playSong } = require('./utils/playsong')
+const { playSong } = require("./utils/playsong")
 
-/*
-
-    Check difference between url and regular input
-
-*/
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('play')
+        .setName('playnext')
         .setDescription('Plays audio from a YouTube URL.')
         .addStringOption(option =>
             option.setName('input')
@@ -17,7 +12,6 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        playSong(interaction, false)
+        playSong(interaction, true)
     }
-
 }

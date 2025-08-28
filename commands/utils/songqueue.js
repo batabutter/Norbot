@@ -14,6 +14,7 @@ class SongQueue {
         this.queueOutdated = false
         this.forceStop = false
         this.loadingSongs = false
+        this.playNextOffset = 0
     }
 
     clearQueue = () => {
@@ -77,7 +78,7 @@ class SongQueue {
         console.log("end of queue")
     }
 
-    addSong = (url, playerName, songName, audioLength) => {
+    addSong = (url, playerName, songName, audioLength, playNext) => {
 
         if (this.forceStop) {
             this.forceStop = false
@@ -100,7 +101,11 @@ class SongQueue {
             console.log("Adding...")
             console.log(newSong)
             
-            this.songQueue.push(newSong)
+            if (playNext) {
+                this.songQueue.splice(this.playNextOffset, 0, newSong)
+                this.playNextOffset++
+            } else 
+                this.songQueue.push(newSong)
             this.queueOutdated = true
         }
     }
@@ -196,6 +201,8 @@ class SongQueue {
     setLoadingSongs = (val) => {this.loadingSongs = val}
 
     getLoadingSongs = () => this.loadingSongs
+
+    resetPlayNextOffset = () => {this.playNextOffset = 0}
 }
 
 module.exports = {

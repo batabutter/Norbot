@@ -38,7 +38,7 @@ class PlaySession {
       console.log("Free to play a song")
       if (!this.songQueue.isEmpty() || this.songQueue.isLoop() || this.songQueue.isLoopQueue()) {
         const content = this.songQueue.isLoop() ? this.songQueue.getPlayingInfo() : this.songQueue.removeSong();
-        this.PlayNextResource(content.url)
+        this.PlayNextResource(content.url, false)
 
       } else {
         this.idleTimeout = setTimeout(async () => {
@@ -107,7 +107,7 @@ class PlaySession {
     }
   }
 
-  PlayNextResource = async (url) => {
+  PlayNextResource = async (url, playNext) => {
     try {
 
       if (this.songQueue.isTooFull())
@@ -118,10 +118,14 @@ class PlaySession {
       if (!info)
         throw new Error("Missing retURL, info, or audio length")
 
+      if (playNext)
+        this.songQueue.resetPlayNextOffset()
+
       this.songQueue.setForceStop(false)
 
       let formattedReply = `**\"${info.videoDetails.title}\"** ${audioLength}\nin \`${this.interaction.guild.members.me.voice.channel.name}\`. 🔊`
       let queueInfo = ""
+      let position = ""
 
       if (this.songQueue.isPlaying()) {
         console.log("A song is playing...")
@@ -129,8 +133,9 @@ class PlaySession {
         if (this.songQueue.getLoadingSongs())
           throw new Error(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
 
-        this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength)
-        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
+        this.songQueue.addSong(retUrl, this.interaction.user.tag, info.videoDetails.title, audioLength, playNext)
+
+        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag, playNext)
 
         queueInfo = `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
             `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n`
@@ -159,7 +164,7 @@ class PlaySession {
         if (this.idleTimeout)
           clearTimeout(this.idleTimeout)
 
-        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag)
+        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag, playNext)
 
         if (numSongs > 1)
           queueInfo = `\n-# Queued ${numSongs-1} song${numSongs > 1 ? "s" : ""}. ✅` +
@@ -174,8 +179,7 @@ class PlaySession {
         }
 
       }
-
-      return await this.interaction.followUp(`Queued: ${formattedReply + queueInfo}`)
+      return await this.interaction.followUp(`Queued: ${formattedReply + position + queueInfo}`)
 
     } catch (error) {
       throw new Error(error.message)
@@ -216,7 +220,7 @@ class PlaySession {
     return { retUrl }
   }
 
-  AddPlaylist = async (url, playerName) => {
+  AddPlaylist = async (url, playerName, playNext) => {
 
     let numUnavailableSongs = 0
     let numSongs = 1
@@ -255,7 +259,7 @@ class PlaySession {
             numUnavailableSongs++
           }
           if (info && info.videoDetails.lengthSeconds < maxVideoLength) {
-            await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds)
+            await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds, playNext)
             numSongs++
           }
 
