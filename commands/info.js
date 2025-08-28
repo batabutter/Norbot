@@ -2,7 +2,6 @@ const { SlashCommandBuilder } = require('discord.js')
 const { EmbedBuilder } = require('discord.js');
 const { guildPlaySessions } = require('./utils/sessionmap');
 
-// ||=====⚪---|| [02:15 / 05:20]
 const PROGRESS_BAR_SIZE = 20
 
 module.exports = {
@@ -10,7 +9,6 @@ module.exports = {
         .setName('info')
         .setDescription('Shows information for playing song.'),
     async execute(interaction) {
-
 
         const session = guildPlaySessions.get(interaction.guild.id)
 

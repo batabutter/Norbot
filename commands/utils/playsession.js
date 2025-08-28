@@ -103,7 +103,7 @@ class PlaySession {
 
     } catch (error) {
       console.error("Error in GetInfo > " + error.message)
-      throw new Error("**❌ Invalid url or query. Please make sure to check your input then try again.**")
+      throw new Error("❌ Invalid url or query. Please make sure to check your input then try again.")
     }
   }
 

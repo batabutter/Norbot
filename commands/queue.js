@@ -25,7 +25,7 @@ module.exports = {
                     embeds: [new EmbedBuilder()
                         .setTitle(`**Queue is empty 🍃**`)
                         .setColor(0x06402B)
-                        .setFooter({ text: `Loop: ${this.loopSong ? `✅` : `❌`} LoopQueue: ${this.loopQueue ? `✅` : `❌`}` })]
+                        .setFooter({ text: `Loop: ${songQueue.isLoop() ? `✅` : `❌`} LoopQueue: ${songQueue.isLoopQueue() ? `✅` : `❌`}` })]
                 });
 
             songQueue.setDisplayQueue([...songQueue.Queue()])
