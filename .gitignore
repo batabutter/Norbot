@@ -3,3 +3,4 @@ config.json
 node_modules
 client_secret.json
 *.mp3
+yt-dl

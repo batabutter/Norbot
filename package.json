@@ -21,8 +21,10 @@
     "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "play-dl": "^1.9.7",
+    "quickjs-emscripten": "^0.31.0",
     "sodium-native": "^5.0.6",
     "youtube-mp3-downloader": "^0.7.11",
+    "youtubei.js": "^16.0.1",
     "ytdl-core": "^4.11.5",
     "ytdl-mp3": "^5.2.2"
   },
