@@ -2,5 +2,5 @@
 config.json
 node_modules
 client_secret.json
-/songs/
+/commands/utils/songs
 yt-dl

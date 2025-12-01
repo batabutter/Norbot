@@ -27,6 +27,7 @@ const deployCommands = async () => {
 
         for (const file of commandFiles) {
             const command = require(`./commands/${file}`)
+            console.log("Trying to load command > ", file)
             if ('data' in command && 'execute' in command) {
                 commands.push(command.data.toJSON())
             } else {
@@ -39,10 +40,17 @@ const deployCommands = async () => {
         console.log(`Started refreshing ${commands.length} application slash` +
             ` commands`)
 
+        console.log("Body > ", commands);
+
+        /**
+         * 
+         * TODO : Fix this bug caused when trying to reload commands.
+         * 
+         */
         const data = await rest.put(
             Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands }
-        )
+        ) 
 
         console.log("Successfully reloaded all commands!")
     } catch (error) {
@@ -179,18 +187,18 @@ fileCleanUp = async () => {
     console.log("Clearings songs...")
     try {
         const files = await fsPromise.readdir(songPath)
-    
+
         for (const file of files) {
             try {
                 await fsPromise.unlink(path.join(songPath, file))
             } catch (error) {
-                console.log("Error deleting file > "+error.message)
+                console.log("Error deleting file > " + error.message)
             }
         }
 
 
     } catch (error) {
-        console.log("Error clearning  up > "+error.message)   
+        console.log("Error clearning  up > " + error.message)
     }
 
     process.exit(0)

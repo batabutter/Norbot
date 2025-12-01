@@ -2,12 +2,11 @@ import { EnabledTrackTypes } from 'googlevideo/utils';
 import { Constants, Innertube, UniversalCache, Utils, Platform, YTNodes } from 'youtubei.js';
 import { SabrStream, type SabrPlaybackOptions } from 'googlevideo/sabr-stream';
 import type { SabrFormat } from 'googlevideo/shared-types';
-import { createWriteStream, type WriteStream } from 'node:fs';
+import { createWriteStream, unlink, type WriteStream } from 'node:fs';
 import { buildSabrFormat } from 'googlevideo/utils';
 import type { ReloadPlaybackContext } from 'googlevideo/protos';
 import type { Types } from 'youtubei.js';
 import path from "node:path";
-
 import { generateWebPoToken } from './utils/webpo-helper.js';
 
 const OPTIONS: SabrPlaybackOptions = {
@@ -123,7 +122,7 @@ function determineFileExtension(mimeType: any) {
   return 'bin';
 }
 
-function createOutputStream(title: string, mimeType: any, filepath:string) {
+function createOutputStream(title: string, mimeType: any, filepath: string) {
   const type = mimeType.includes('video') ? 'video' : 'audio';
   const extension = determineFileExtension(mimeType);
   const fileName = path.join(filepath, `${title}.${extension}`);
@@ -133,10 +132,11 @@ function createOutputStream(title: string, mimeType: any, filepath:string) {
   };
 }
 
-export async function yt () {
+export async function yt() {
   return await Innertube.create({
-  cache: new UniversalCache(false),
-  generate_session_locally: true});
+    cache: new UniversalCache(false),
+    generate_session_locally: true
+  });
 };
 
 
@@ -147,11 +147,16 @@ export async function download(yt: Innertube, videoId: string, interactionId?: s
   const title = interactionId || "song";
   filepath = filepath || ""
 
-  const audioOutputStream = createOutputStream(title , selectedFormats.audioFormat.mimeType!, filepath);
+  const audioOutputStream = createOutputStream(title, selectedFormats.audioFormat.mimeType!, filepath);
 
-  await Promise.all([
-    audioStream.pipeTo(createStreamSink(selectedFormats.audioFormat, audioOutputStream.stream))
-  ]);
+  try {
+    await Promise.all([
+      audioStream.pipeTo(createStreamSink(selectedFormats.audioFormat, audioOutputStream.stream))
+    ]);
+  } finally {
+    audioOutputStream.stream.end();
+  }
+
 
   console.log("Download complete!")
 }

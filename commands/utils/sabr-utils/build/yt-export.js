@@ -129,8 +129,13 @@ async function download(yt, videoId, interactionId, filepath) {
     const title = interactionId || "song";
     filepath = filepath || "";
     const audioOutputStream = createOutputStream(title, selectedFormats.audioFormat.mimeType, filepath);
-    await Promise.all([
-        audioStream.pipeTo(createStreamSink(selectedFormats.audioFormat, audioOutputStream.stream))
-    ]);
+    try {
+        await Promise.all([
+            audioStream.pipeTo(createStreamSink(selectedFormats.audioFormat, audioOutputStream.stream))
+        ]);
+    }
+    finally {
+        audioOutputStream.stream.end();
+    }
     console.log("Download complete!");
 }

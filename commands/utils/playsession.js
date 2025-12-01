@@ -18,12 +18,10 @@ let yt;
 let download;
 
 (async () => {
-  const filePath = path.join(__dirname, "sabr-utils", "build", "yt-export.js");
-  const fileUrl = pathToFileURL(filePath).href;
-  const module = await import(fileUrl);
-  console.log("Module", module)
-  yt = await module.default.yt();
-  console.log(yt);
+  const filePath = path.join(__dirname, "sabr-utils", "build", "yt-export.js")
+  const fileUrl = pathToFileURL(filePath).href
+  const module = await import(fileUrl)
+  yt = await module.default.yt()
   download = module.download;
 })();
 
@@ -44,28 +42,30 @@ class PlaySession {
     this.start = 0
     this.songLengthSeconds = 0
     this.songPath = path.resolve(__dirname, `songs/${interaction.guild.id}.${extension}`)
-    this.idleTimeout = null;
+    this.idleTimeout = null
+    this.currentResource = null
 
     player.on(AudioPlayerStatus.Idle, async () => {
-      await new Promise(res => setTimeout(res, NEXT_SONG_WAIT_TIME));
+      await new Promise(res => setTimeout(res, NEXT_SONG_WAIT_TIME))
 
       this.songQueue.isPlayingFlagToggle(false)
-      console.log("Free to play a song")
+      console.log("[AudioPlayerStatus.Idle] : Free to play a song")
       if (!this.songQueue.isEmpty() || this.songQueue.isLoop() || this.songQueue.isLoopQueue()) {
-        const content = this.songQueue.isLoop() ? this.songQueue.getPlayingInfo() : this.songQueue.removeSong();
+        const content = this.songQueue.isLoop() ? this.songQueue.getPlayingInfo() : this.songQueue.removeSong()
         this.PlayNextResource(content.url, false)
 
       } else {
+        await this.player.stop();
         this.idleTimeout = setTimeout(async () => {
           await this.EndConnection()
-          console.log("Timed out")
+          console.log("[AudioPlayerStatus.Idle] : Timed out")
         }, maxIdleTimeMS)
       }
 
     })
 
     connection.on('stateChange', (oldState, newState) => {
-      console.log(`Connection state changed from ${oldState.status} to ${newState.status}`);
+      console.log(`Connection state changed from ${oldState.status} to ${newState.status}`)
     })
 
     connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
@@ -96,7 +96,7 @@ class PlaySession {
   GetVideoInfo = async (url) => {
     try {
       console.log("Entering video info")
-      const urlInfo = await yt.resolveURL(url);
+      const urlInfo = await yt.resolveURL(url)
       const retUrl = url
       let info = await yt.getBasicInfo(urlInfo.payload.videoId)
 
@@ -159,14 +159,12 @@ class PlaySession {
 
 
       } else {
-        /* This coed should appropriately download and use the song */
-        console.log(info.basic_info.id)
         await download(yt, info.basic_info.id, this.interaction.guild.id, path.join(__dirname, "/songs"));
 
         await new Promise((resolve) => {
-          const resource = createAudioResource(this.songPath)
-          this.player.play(resource)
-          resolve(resource)
+          this.currentResource = createAudioResource(this.songPath)
+          this.player.play(this.currentResource)
+          resolve(this.currentResource)
         })
 
         this.startTime = Date.now() / 1000
@@ -201,12 +199,32 @@ class PlaySession {
 
   EndConnection = async () => {
     await this.player.stop()
+    if (this.currentResource) {
+      await this.currentResource.playStream.destroy();
+      this.currentResource = null;
+    }
     await clearConnection(this.connection, this.player, this.interaction,
       this.subscription, this.songQueue)
-    try {
-      await unlink(this.songPath)
-    } catch (error) {
-      console.log("Error removing files > " + error.message)
+
+    /**
+      * This is fucking stupid and I don't know why it doesn't properly delete the file.
+      * I Literally call await and ensure the process releases the file first, but it doesn't work unless I 
+      * do this shit.
+    */
+    let retries = 5
+    let count = 0
+    let delayms = 100
+    while (count < retries) {
+      try {
+        await unlink(this.songPath)
+        count = retries
+      } catch (error) {
+        await new Promise(resolve => setTimeout(resolve, delayms))
+      }
+      if (count === retries - 1) {
+        throw new Error("[EndConnection] Unable to unlink song file.")
+      }
+      count++;
     }
   }
 
@@ -274,20 +292,17 @@ class PlaySession {
             if (audioLength < maxVideoLength) {
               await this.songQueue.addSong(itemURL, playerName, info.basic_info.title, audioLength, playNext)
               numSongs++
-              console.log("[AddPlaylist] Success! Added : ", itemURL);
-            } else {
-              console.log(`What > `,audioLength)
+              console.log("[AddPlaylist] Success! Added : ", itemURL)
             }
 
           } catch (error) {
-            console.log("Video unavailable > " + error.message)
+            console.log("[AddPlaylist] Video unavailable > " + error.message)
             numUnavailableSongs++
           }
         }
       }
-      console.log("song count = " + numSongs)
     } catch (error) {
-      console.log("Adding stopped > " + error.message)
+      console.log("[AddPlaylist] Adding stopped > " + error.message)
     } finally {
       this.songQueue.setLoadingSongs(false)
       return { numUnavailableSongs, numSongs }
