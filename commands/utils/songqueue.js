@@ -65,7 +65,7 @@ class SongQueue {
     isPlayingFlagToggle = (val) => { this.isPlayingFlag = val }
 
     setPlayingSong = (url, player, name, audioLength) => {
-        console.log("Set playing song > ")
+        console.log("Set playing song > ", url)
         url = url.split("&")[0]
         this.lastPlayedSong = {
             url: url,

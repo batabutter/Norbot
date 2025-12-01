@@ -10,6 +10,10 @@ const playlistURL = "http://localhost:3000/playlist/items/"
 const maxVideoLength = 7200
 const maxIdleTimeMS = 600000
 
+/**
+ * TODO : Convert this to TS for improved readability
+ */
+
 const NEXT_SONG_WAIT_TIME = 1000
 
 const extension = "webm"
@@ -96,9 +100,9 @@ class PlaySession {
   GetVideoInfo = async (url) => {
     try {
       console.log("Entering video info")
-      const urlInfo = await yt.resolveURL(url)
-      const retUrl = url
-      let info = await yt.getBasicInfo(urlInfo.payload.videoId)
+      const retUrl = await this.ValidateUrl(url)
+      let info = await yt.getBasicInfo(retUrl.payload.videoId)
+      url = retUrl.metadata.url;
 
       if (!info)
         throw new Error("**❌ Video unavailable.**")
@@ -110,7 +114,7 @@ class PlaySession {
       /*
         Format declarations: 
       */
-      return { retUrl, info, audioLength }
+      return { url, info, audioLength }
 
     } catch (error) {
       console.error("Error in GetInfo > " + error.message)
@@ -128,7 +132,7 @@ class PlaySession {
       /**
        * This needs to be fixed
        */
-      const { retUrl, info, audioLength } = await this.GetVideoInfo(url)
+      const { info, audioLength } = await this.GetVideoInfo(url)
 
       if (!info)
         throw new Error("Missing retURL, info, or audio length")
@@ -149,9 +153,9 @@ class PlaySession {
         if (this.songQueue.getLoadingSongs())
           throw new Error(`**❌ Please wait until all the songs have been loaded into the queue to queue a new song.**`)
 
-        this.songQueue.addSong(retUrl, this.interaction.user.tag, info.basic_info.title, audioLength, playNext)
+        this.songQueue.addSong(url, this.interaction.user.tag, info.basic_info.title, audioLength, playNext)
 
-        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag, playNext)
+        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(url, this.interaction.user.tag, playNext)
 
         queueInfo = `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
           `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n`
@@ -170,12 +174,12 @@ class PlaySession {
         this.startTime = Date.now() / 1000
         this.songLengthSeconds = audioLength
         this.songQueue.setQueueOutdated(true)
-        this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.basic_info.title, audioLength)
+        this.songQueue.setPlayingSong(url, this.interaction.user.tag, info.basic_info.title, audioLength)
         this.songQueue.isPlayingFlagToggle(true)
         if (this.idleTimeout)
           clearTimeout(this.idleTimeout)
 
-        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag, playNext)
+        const { numSongs, numUnavailableSongs } = await this.AddPlaylist(url, this.interaction.user.tag, playNext)
 
         if (numSongs > 1)
           queueInfo = `\n-# Queued ${numSongs - 1} song${numSongs > 1 ? "s" : ""}. ✅` +
@@ -231,26 +235,23 @@ class PlaySession {
 
   /* I don't think I need this anymore*/
   ValidateUrl = async (url) => {
-    let retUrl = url
-    let query = false
+    let retUrl = ""
+    try {
+      retUrl = await yt.resolveURL(url)
+    } catch (error) {
+      const res = await fetch(`${baseUrl}${url}`)
+      const json = await res.json()
 
-    if (!yt.resolveURL(url)) {
-      try {
-        query = true
-        const res = await fetch(`${baseUrl}${url}`)
-        const json = await res.json()
-
-        if (!res.ok) {
-          return await this.interaction.editReply("**❌ Could not find a video with that url or title.**")
-        }
-
-        retUrl = json[0]
-      } catch (error) {
-        throw new Error(`**❌ FATAL ERROR: ${error.message}❌**`)
+      if (!res.ok) {
+        return await this.interaction.editReply("**❌ Could not find a video with that url or title.**")
       }
+
+      retUrl = yt.resolveURL(json[0]);
+      console.log("Wha thte fuc, ", retUrl);
     }
 
-    return { retUrl }
+
+    return retUrl
   }
   /* 
   This also needs to be thoroughly checked
