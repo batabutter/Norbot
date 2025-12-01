@@ -16,4 +16,4 @@ npm install
 ```
 ## Main API Calls and Libraries Provided by [youtubei.js](https://github.com/LuanRT/YouTube.js)
 
-## Downloader and JS Evaluator Provided by [googlevideo/sabr]((https://github.com/LuanRT/googlevideo))
+## Downloader and JS Evaluator Provided by [googlevideo/sabr](https://github.com/LuanRT/googlevideo)
