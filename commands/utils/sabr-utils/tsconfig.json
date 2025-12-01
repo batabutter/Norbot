@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "nodenext",
+        "target": "es2020",
+        "esModuleInterop": true,
+        "moduleResolution": "nodenext",
+        "strict": true,
+        "outDir": "build"
+    },
+    "include": [
+        "**.ts", "utils/**.ts"
+    ]
+}

@@ -1,12 +1,10 @@
 const { AudioPlayerStatus, VoiceConnectionStatus, createAudioResource } = require("@discordjs/voice")
 const { SongQueue } = require("./songqueue")
-const path = require('path');
+const { pathToFileURL } = require("node:url");
+const path = require("node:path");
 const { clearConnection } = require("./endConnection");
 const { unlink, access } = require('fs/promises');
 const { exec } = require('node:child_process');
-(async () => {
-const yt = (await import("./yt-export.js")).default;
-})();
 const baseUrl = "http://localhost:3000/search/"
 const playlistURL = "http://localhost:3000/playlist/items/"
 const maxVideoLength = 7200
@@ -14,10 +12,19 @@ const maxIdleTimeMS = 600000
 
 const NEXT_SONG_WAIT_TIME = 1000
 
+const extension = "webm"
+
 let yt;
+let download;
 
 (async () => {
-  yt = (await import("./yt-export.js")).default;
+  const filePath = path.join(__dirname, "sabr-utils", "build", "yt-export.js");
+  const fileUrl = pathToFileURL(filePath).href;
+  const module = await import(fileUrl);
+  console.log("Module", module)
+  yt = await module.default.yt();
+  console.log(yt);
+  download = module.download;
 })();
 
 class PlaySession {
@@ -36,7 +43,7 @@ class PlaySession {
     this.reponse = ""
     this.start = 0
     this.songLengthSeconds = 0
-    this.filePath = path.resolve(__dirname, `songs/${interaction.guild.id}.mp3`)
+    this.songPath = path.resolve(__dirname, `songs/${interaction.guild.id}.${extension}`)
     this.idleTimeout = null;
 
     player.on(AudioPlayerStatus.Idle, async () => {
@@ -86,7 +93,7 @@ class PlaySession {
 
   GetSubscription = () => this.subscription
 
-  GetVideoInfo = async (url, playerName) => {
+  GetVideoInfo = async (url) => {
     try {
       console.log("Entering video info")
       const urlInfo = await yt.resolveURL(url);
@@ -96,17 +103,13 @@ class PlaySession {
       if (!info)
         throw new Error("**❌ Video unavailable.**")
 
-      const lengthSeconds = info.basic_info.duration
-      if (lengthSeconds > maxVideoLength)
+      const audioLength = info.basic_info.duration
+      if (audioLength > maxVideoLength)
         throw new Error("**❌ This video is too long! I can only play videos under 2 hours in length.**")
 
       /*
         Format declarations: 
       */
-      const formattedMins = String(Math.floor(lengthSeconds / 60))
-      const formattedSeconds = String(Math.round((lengthSeconds % 60))).padStart(2, 0)
-      const audioLength = `[${formattedMins}:${formattedSeconds}]`
-
       return { retUrl, info, audioLength }
 
     } catch (error) {
@@ -125,7 +128,7 @@ class PlaySession {
       /**
        * This needs to be fixed
        */
-      const { retUrl, info, audioLength } = await this.GetVideoInfo(url, this.interaction.user.tag)
+      const { retUrl, info, audioLength } = await this.GetVideoInfo(url)
 
       if (!info)
         throw new Error("Missing retURL, info, or audio length")
@@ -151,22 +154,22 @@ class PlaySession {
         const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag, playNext)
 
         queueInfo = `\n-# Queued ${numSongs} song${numSongs > 1 ? "s" : ""}. ✅` +
-            `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n`
-            + `\n-# Size of queue: ${this.songQueue.getSize()}`
+          `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n`
+          + `\n-# Size of queue: ${this.songQueue.getSize()}`
 
 
       } else {
         /* This coed should appropriately download and use the song */
-
-        await this.CLIDownload(url, this.interaction.guild.id)
+        console.log(info.basic_info.id)
+        await download(yt, info.basic_info.id, this.interaction.guild.id, path.join(__dirname, "/songs"));
 
         await new Promise((resolve) => {
-          const resource = createAudioResource(this.filePath)
+          const resource = createAudioResource(this.songPath)
           this.player.play(resource)
           resolve(resource)
         })
-        
-        this.startTime = Date.now() / 1000;
+
+        this.startTime = Date.now() / 1000
         this.songLengthSeconds = audioLength
         this.songQueue.setQueueOutdated(true)
         this.songQueue.setPlayingSong(retUrl, this.interaction.user.tag, info.basic_info.title, audioLength)
@@ -177,7 +180,7 @@ class PlaySession {
         const { numSongs, numUnavailableSongs } = await this.AddPlaylist(retUrl, this.interaction.user.tag, playNext)
 
         if (numSongs > 1)
-          queueInfo = `\n-# Queued ${numSongs-1} song${numSongs > 1 ? "s" : ""}. ✅` +
+          queueInfo = `\n-# Queued ${numSongs - 1} song${numSongs > 1 ? "s" : ""}. ✅` +
             `${numUnavailableSongs ? `\n-# ❌ Unavailable songs: ${numUnavailableSongs}. ` : ""}\n`
             + `\n-# Size of queue: ${this.songQueue.getSize()}`
 
@@ -196,41 +199,12 @@ class PlaySession {
     }
   }
 
-  CLIDownload = async (url, id) => {
-    const download = new Promise((resolve, reject) => {
-      const ytdlpPath = path.join(__dirname, "yt-dl", "yt-dlp")
-      const outPath = path.join(__dirname, "songs", `${id}.%(ext)s`)
-      const cli = `"${ytdlpPath}" ${url} -o "${outPath}"`
-      exec(cli, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error :${error}`);
-                reject(error);
-                return;
-            }
-
-            if (stderr) {
-                console.error(`stderr: ${stderr}`);
-                reject(stderr);
-                return;
-            }
-
-            resolve(stdout);
-            console.log(`Finished downloading ${url}`);
-      });
-    });
-
-    await download;
-
-
-  }
-
-
   EndConnection = async () => {
     await this.player.stop()
     await clearConnection(this.connection, this.player, this.interaction,
       this.subscription, this.songQueue)
     try {
-      await unlink(this.filePath)
+      await unlink(this.songPath)
     } catch (error) {
       console.log("Error removing files > " + error.message)
     }
@@ -293,20 +267,22 @@ class PlaySession {
 
         for (let i = 0; (i < listItems.length) && (!this.songQueue.isTooFull()); i++) {
           const itemURL = listItems[i]
-          console.log("Trying with > " + itemURL)
-          let info;
-          let resURL = await yt.resolveURL(itemURL);
+          console.log("[AddPlaylist] Trying with > " + itemURL)
           try {
-            info = await yt.getBasicInfo(res.payload.videoId)
+            const { retUrl, info, audioLength } = await this.GetVideoInfo(itemURL)
+
+            if (audioLength < maxVideoLength) {
+              await this.songQueue.addSong(itemURL, playerName, info.basic_info.title, audioLength, playNext)
+              numSongs++
+              console.log("[AddPlaylist] Success! Added : ", itemURL);
+            } else {
+              console.log(`What > `,audioLength)
+            }
+
           } catch (error) {
             console.log("Video unavailable > " + error.message)
             numUnavailableSongs++
           }
-          if (info && info.basic_info.duration < maxVideoLength) {
-            await this.songQueue.addSong(itemURL, playerName, info.videoDetails.title, info.videoDetails.lengthSeconds, playNext)
-            numSongs++
-          }
-
         }
       }
       console.log("song count = " + numSongs)
