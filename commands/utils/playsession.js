@@ -59,7 +59,6 @@ class PlaySession {
         this.PlayNextResource(content.url, false)
 
       } else {
-        await this.player.stop();
         this.idleTimeout = setTimeout(async () => {
           await this.EndConnection()
           console.log("[AudioPlayerStatus.Idle] : Timed out")
@@ -246,8 +245,7 @@ class PlaySession {
         return await this.interaction.editReply("**❌ Could not find a video with that url or title.**")
       }
 
-      retUrl = yt.resolveURL(json[0]);
-      console.log("Wha thte fuc, ", retUrl);
+      retUrl = await yt.resolveURL(json[0]);
     }
 
 
