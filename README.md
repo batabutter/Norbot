@@ -3,7 +3,13 @@
 ## To run this bot run the following commands,
 ```bash 
 npm install
+// inStall related dependencies
+npm start
+// start the youubeapi concurrently
 ```
+
+> [!NOTE]
+> You must provide your own YouTube API key if you want all the features of this bot.
 
 ## Then from root directory, cd to the following directories and run the following commands: 
 ```bash
